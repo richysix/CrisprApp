@@ -1,0 +1,9 @@
+<div class="container">
+  <!-- page tile -->
+  <div class="page-header">
+    <h1 id="title">Crispr/Cas9 Primers</h1>
+  </div>
+  <div id="content"  class="container-fluid"  role="main">
+    <p> [% test_text %] </p>
+  </div>
+</div> <!-- / container -->

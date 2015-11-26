@@ -1,0 +1,5 @@
+/* <footer> make a solid grey border above with some padding */
+footer{
+  padding-top: 10px;
+  border-top: 1px solid #eeeeee;
+}

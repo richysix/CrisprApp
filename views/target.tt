@@ -1,0 +1,25 @@
+<div class="container">
+  <!-- page tile -->
+  <div class="page-header">
+    <h1 id="title">Crispr/Cas9 Target</h1>
+  </div>
+  <div id="content"  class="container-fluid"  role="main">
+    <table class="table table-striped" id="target-table">
+        <caption>Target</caption>
+        <thead><th>Target Name</th><th>crRNA Name</th><th>Chr</th><th>Start</th><th>End</th><th>Strand</th><th>Sequence</th></thead>
+        <tbody>
+        [% FOREACH crRNA IN target.crRNAs %]
+        <tr>
+          <td>[% target.target_name %]</td>
+          <td><a href="[% sgrna_url %]/[% crRNA.id %]" id="[% crRNA.id %]" >[% crRNA.crRNA_name %]</a></td>
+          <td>[% crRNA.chr %]</td>
+          <td>[% crRNA.start %]</td>
+          <td>[% crRNA.end %]</td>
+          <td>[% crRNA.strand %]</td>
+          <td>[% crRNA.sequence %]</td>
+        </tr>
+        [% END %]
+        </tbody>
+    </table>
+  </div>
+</div> <!-- / container -->
