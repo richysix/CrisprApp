@@ -154,24 +154,34 @@ get '/miseq' => sub {
 };
 
 get '/get_miseq' => sub {
-    debug "MiSeq/Run ID: ", param('miseq_run_id');
-    # my $plex;
-    eval{
-        $plex = $plex_adaptor->fetch_by_name( param('miseq_run_id') );
+    debug "MiSeq ID: ", param('miseq_id');
+    # # my $plex;
+    # eval{
+    #     $plex = $plex_adaptor->fetch_by_name( param('miseq_id') );
+    # }
+    my $plex_from_db = {
+        db_id => 1,
+        plex_name => 'miseq29',
+        run_id => 18627,
+        analysis_started => '2015-11-26',
+        analysis_finished => undef,
+    };
+    my ($plex, $err_msg );
+    if( $plex_from_db->{plex_name} eq param('miseq_id') ){
+        $plex = $plex_from_db;
+        $err_msg = undef;
+
     }
-    if($EVAL_ERROR){
-        if($EVAL_ERROR =~ m/Couldn't\sretrieve\splex/xms){
-            # try fetching by MiSeq ID
-            # NEED TO WRITE fetch_by_run_id method
-            $plex = $plex_adaptor->fetch_by_run_id( param('miseq_run_id') );
-        }
-        else{
-            die $EVAL_ERROR
-        }
+    else{
+        $plex = undef;
+        $err_msg = join(q{ }, "Couldn't find plex", param('miseq_id'),
+            "in the database. Do you want to try again?" ) . "\n";
     }
     template 'get_miseq', {
         template_name => 'get_miseq',
         test_text => 'This is some different test text for a retrieved MiSeq run!',
+        plex => $plex,
+        err_msg => $err_msg,
     };
 };
 
