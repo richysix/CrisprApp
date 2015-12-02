@@ -5,5 +5,40 @@
   </div>
   <div id="content"  class="container-fluid"  role="main">
     <p> [% test_text %] </p>
+    [% IF err_msg %]
+    <div class="alert alert-danger">
+      <p> [% err_msg %] </p>
+    </div>
+    [% END %]
+    <div class="row">
+      <form class="form-horizontal col-lg-6" action="[% get_sgrnas_url %]" method="get">
+        <fieldset>
+          <legend>Retrieve Crisprs</legend>
+          <div class="form-group">
+            <label for="input_plate_number" class="col-lg-3 control-label">Plate Number</label>
+            <div class="col-lg-9" >
+              <input class="form-control" id="input_plate_number" placeholder="19" type="text" name="plate_number">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="input_well" class="col-lg-3 control-label">Well</label>
+            <div class="col-lg-9" >
+              <input class="form-control" id="input_well" placeholder="A01" type="text" name="well">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="input_crRNA_name" class="col-lg-3 control-label">Crispr Name</label>
+            <div class="col-lg-9" >
+              <input class="form-control" id="input_crRNA_name" placeholder="crRNA:1:101-123:1" type="text" name="crRNA_name">
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="col-lg-offset-3">
+              <button type="submit" class="btn btn-primary">Get Crisprs</button>
+            </div>
+          </div>
+        </fieldset>
+      </form>
+    </div> <!-- /row -->
   </div>
 </div> <!-- / container -->
