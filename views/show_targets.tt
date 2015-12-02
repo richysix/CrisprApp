@@ -1,0 +1,36 @@
+<div class="container">
+  <!-- page tile -->
+  <div class="page-header">
+    <h1 id="title">Crispr/Cas9 Target Sites</h1>
+  </div>
+  <div id="content"  class="container-fluid"  role="main">
+    <p> [% test_text %] </p>
+    <div class="row">
+      <table class="table table-striped" id="target-table">
+          <caption>Targets</caption>
+          <thead>
+            <th>Target Name</th>
+            <th>Gene Name</th>
+            <th>Gene ID</th>
+            <th>Requestor</th>
+            <th>Ensembl Version</th>
+            <th>Status</th>
+            <th>Status Changed</th>
+          </thead>
+          <tbody>
+          [% FOREACH target IN targets %]
+          <tr>
+            <td><a href="[% target_url %]/[% target.id %]" id="[% target.target_name %]" >[% target.target_name %]</a></td>
+            <td>[% target.gene_name %]</td>
+            <td>[% target.gene_id %]</td>
+            <td>[% target.requestor %]</td>
+            <td>[% target.ensembl_version %]</td>
+            <td>[% target.status %]</td>
+            <td>[% target.status_changed %]</td>
+          </tr>
+          [% END %]
+          </tbody>
+        </table>
+    </div>
+  </div> <!-- / container -->
+</div>
