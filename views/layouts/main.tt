@@ -22,6 +22,8 @@
   <!-- site specific stylesheet-->
   <link rel="stylesheet" href="[% request.uri_base %]/css/crispr.css">
 
+  <script src="[% request.uri_base %]/javascripts/crisprapp.js" type="text/javascript"></script>
+
 </head>
 
 <body>
