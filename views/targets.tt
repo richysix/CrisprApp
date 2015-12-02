@@ -4,21 +4,28 @@
     <h1 id="title">Crispr/Cas9 Target Sites</h1>
   </div>
   <div id="content"  class="container-fluid"  role="main">
-    <p> [% test_text %] </p>
-    <table class="table table-striped" id="target-table">
-        <caption>Targets</caption>
-        <thead><th>Target Name</th><th>Gene Name</th><th>Gene ID</th><th>Requestor</th><th>Ensembl Version</th></thead>
-        <tbody>
-        [% FOREACH target IN targets %]
-        <tr>
-          <td><a href="[% target_url %]/[% target.id %]" id="[% target.target_name %]" >[% target.target_name %]</a></td>
-          <td>[% target.gene_name %]</td>
-          <td>[% target.gene_id %]</td>
-          <td>[% target.requestor %]</td>
-          <td>[% target.ensembl_version %]</td>
-        </tr>
-        [% END %]
-        </tbody>
-    </table>
+    [% IF err_msg %]
+    <div class="alert alert-danger">
+      <p> [% err_msg %] </p>
+    </div>
+    [% END %]
+    <div class="row">
+      <form class="form-horizontal col-lg-6" action="[% get_targets_url %]" method="get">
+        <fieldset>
+          <legend>Retrieve Targets</legend>
+          <div class="form-group">
+            <label for="input_gene_name" class="col-lg-3 control-label">Gene Name</label>
+            <div class="col-lg-9" >
+              <input class="form-control" id="input_gene_name" placeholder="slc45a2" type="text" name="gene_name">
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="col-lg-offset-3">
+              <button type="submit" class="btn btn-primary">Get Targets</button>
+            </div>
+          </div>
+        </fieldset>
+      </form>
+    </div> <!-- /row -->
   </div>
 </div> <!-- / container -->
