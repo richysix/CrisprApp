@@ -17,26 +17,22 @@ if( $debug ){
             gene_id => 'test_gene_id_1',
             requestor => 'test_usr1',
             ensembl_version => 'Zv9',
-            status => 'REQUESTED',
+            status => 'PASSED_EMBRYO_SCREENING',
             status_changed => '2015-12-02',
             crRNAs => [
                 {
                     id => 1,
                     crRNA_name => 'crRNA:1:101-123:-1',
-                    chr => 1,
-                    start => 101,
-                    end => 123,
-                    strand => '-1',
                     sequence => 'GGGACATAGACATATAGACGAGG',
+                    status => 'FAILED_EMBRYO_SCREENING',
+                    status_changed => '2015-12-02',
                 },
                 {
                     id => 2,
                     crRNA_name => 'crRNA:1:121-143:1',
-                    chr => 1,
-                    start => 121,
-                    end => 143,
-                    strand => '1',
                     sequence => 'GGTACGATATATATGCAACGAGG',
+                    status => 'PASSED_EMBRYO_SCREENING',
+                    status_changed => '2015-12-02',
                 }
             ]
         },
@@ -47,7 +43,7 @@ if( $debug ){
             gene_id => 'test_gene_id_2',
             requestor => 'test_usr2',
             ensembl_version => 'GRCz10',
-            status => 'MISEQ_EMBRYO_SCREENING',
+            status => 'REQUESTED',
             status_changed => '2015-12-02',
         },
     ];
@@ -139,12 +135,21 @@ get '/target/:id' => sub {
 };
 
 get '/sgrnas' => sub {
-    my $crRNAs = $test_targets->[0]->{crRNAs};
-
     template 'sgrnas', {
         template_name => 'sgrnas',
         test_text => 'sgRNA test text.',
+        get_sgrnas_url => uri_for('/get_sgrnas'),
+    };
+};
+
+get '/get_sgrnas' => sub {
+    my $crRNAs = $test_targets->[0]->{crRNAs};
+
+    template 'show_sgrnas', {
+        template_name => 'sgrnas',
+        test_text => 'sgRNA test text.',
         crRNAs => $crRNAs,
+        sgrna_url => uri_for('/sgrna'),
     };
 };
 
