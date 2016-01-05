@@ -1,7 +1,7 @@
 <div class="container">
   <!-- page tile -->
   <div class="page-header">
-    <h1 id="title">Crispr/Cas9 §s</h1>
+    <h1 id="title">Crispr/Cas9 sgRNAs</h1>
   </div>
   <div id="content"  class="container-fluid"  role="main">
     <div class="row">
@@ -9,19 +9,25 @@
           <caption>sgRNAs</caption>
           <thead>
             <th>crRNA Name</th>
-            <th>Sequence</th>
-            <!-- <th>Gene ID</th>
-            <th>Gene Name</th> -->
+            <th>Plate</th>
+            <th>Well</th>
             <th>Status</th>
             <th>Status Changed</th>
+            <th>Gene ID</th>
+            <th>Gene Name</th>
+            <th>Requestor</th>
           </thead>
           <tbody>
           [% FOREACH crRNA IN crRNAs %]
           <tr class="[% crRNA.status %]">
-            <td><a href="[% sgrna_url %]/[% crRNA.id %]" id="[% crRNA.crRNA_name %]" >[% crRNA.crRNA_name %]</a></td>
-            <td>[% crRNA.sequence %]</td>
+            <td><a href="[% sgrna_url %]/[% crRNA.crRNA_id %]" id="[% crRNA.name %]" >[% crRNA.name %]</a></td>
+            <td>[% crRNA.well.plate_name %]</td>
+            <td>[% crRNA.well.position %]</td>
             <td>[% crRNA.status %]</td>
             <td>[% crRNA.status_changed %]</td>
+            <td>[% crRNA.target_gene_id %]</td>
+            <td>[% crRNA.target_gene_name %]</td>
+            <td>[% crRNA.requestor %]</td>
           </tr>
           [% END %]
           </tbody>
