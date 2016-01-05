@@ -300,11 +300,122 @@ get '/sgrna/:crRNA_id' => sub {
     };
 };
 
-get '/primers' => sub {
-    template 'primers', {
-        template_name => 'primers',
-        test_text => 'Primer test text.'
+get '/primer_pairs' => sub {
+    template 'primer_pairs', {
+        get_primers_url => uri_for('/get_primer_pairs'),
     };
+};
+
+get '/get_primer_pairs' => sub {
+    my $crRNA_id = param('crRNA_id');
+    my $plate_number = param('plate_number');
+    my $well_id = param('well');
+    my $crRNA_name = param('crRNA_name');
+    my $crispr_plate = param('crispr_plate');
+    my $crispr_well = param('crispr_well');
+    
+    debug $crRNA_id;
+    
+    my $pair_info = [];
+    my $primer_pairs = [];
+    my $err_msg;
+    my $crRNAs;
+    if( $debug ){
+        $pair_info = $test_pair_info;
+    }
+    else{
+        if( $crRNA_id ){
+            $primer_pairs = $primer_pair_adaptor->fetch_all_by_crRNA_id( $crRNA_id );
+        }
+        if( $plate_number ){
+            my $plate_name = sprintf('CR_%06df', $plate_number, );
+            if( $well_id ){
+                $primer_pairs = $primer_pair_adaptor->fetch_by_plate_name_and_well( $plate_name, $well_id );
+            }
+            else{
+                $primer_pairs = $primer_pair_adaptor->fetch_by_plate_name_and_well( $plate_name );
+            }
+        }
+        if( $crRNA_name ){
+            $crRNAs = $crRNA_adaptor->fetch_all_by_name( $crRNA_name );
+            
+        }
+        if( $crispr_plate ){
+            if( $crispr_well ){
+                my $crRNA;
+                eval {
+                    $crRNA = $crRNA_adaptor->fetch_by_plate_num_and_well( $crispr_plate, $crispr_well, );
+                };
+                $crRNAs = [ $crRNA ] if $crRNA;
+            }
+            else{
+                eval{
+                    $crRNAs = $crRNA_adaptor->fetch_by_plate_num_and_well( $crispr_plate, );
+                };
+            }
+        }
+        if( $crRNAs ){
+            $primer_pairs = $primer_pair_adaptor->fetch_all_by_crRNAs( $crRNAs );
+        }
+        
+        my %plate_for;
+        if( scalar @{$primer_pairs} == 0 ){
+            $err_msg = "Couldn't find any matches for:<br>";
+            $err_msg .= join(' - ', 'Plate', $plate_number, ) . '<br>' if $plate_number;
+            $err_msg .= join(' - ', 'Well', $well_id, ) . '<br>' if $well_id;
+            $err_msg .= join(' - ', 'crRNA Name', $crRNA_name, ) . '<br>' if $crRNA_name;
+            $err_msg .= join(' - ', 'Crispr Plate', $crispr_plate, ) . '<br>' if $crispr_plate;
+            $err_msg .= join(' - ', 'Crispr Well', $crispr_well, ) . '<br>' if $crispr_well;
+        }
+        else{
+            foreach my $primer_pair ( @{$primer_pairs} ){
+                my $info = {
+                    pair_name => $primer_pair->pair_name,
+                    primer_pair_id => $primer_pair->primer_pair_id,
+                };
+                my $plate;
+                if( !exists $plate_for{ $primer_pair->left_primer->plate_id } ){
+                    $plate = $plate_adaptor->fetch_empty_plate_by_id( $primer_pair->left_primer->plate_id );
+                    $plate_for{ $primer_pair->left_primer->plate_id } = $plate;
+                }
+                else{
+                    $plate = $plate_for{ $primer_pair->left_primer->plate_id };
+                }
+                $info->{'left_primer'} = {
+                        sequence => $primer_pair->left_primer->sequence,
+                        plate_name => $plate->plate_name,
+                        well_id => $primer_pair->left_primer->well_id,
+                    };
+                
+                if( !exists $plate_for{ $primer_pair->right_primer->plate_id } ){
+                    $plate = $plate_adaptor->fetch_empty_plate_by_id( $primer_pair->right_primer->plate_id );
+                    $plate_for{ $primer_pair->right_primer->plate_id } = $plate;
+                }
+                else{
+                    $plate = $plate_for{ $primer_pair->right_primer->plate_id };
+                }
+                $info->{'right_primer'} = {
+                        sequence => $primer_pair->right_primer->sequence,
+                        plate_name => $plate->plate_name,
+                        well_id => $primer_pair->right_primer->well_id,
+                    };
+                
+                push @{$pair_info}, $info;
+            }
+        }
+    }
+    
+    if( $err_msg ){
+        template 'primer_pairs', {
+            err_msg => $err_msg,
+            target_url => uri_for('/get_primer_pairs'),
+        };
+    }
+    else{
+        template 'show_primer_pairs', {
+            pair_info => $pair_info,
+        };        
+    }
 };
 
 get '/miseq' => sub {
