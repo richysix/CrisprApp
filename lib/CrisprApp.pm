@@ -188,20 +188,100 @@ get '/target/:target_id' => sub {
 get '/sgrnas' => sub {
     template 'sgrnas', {
         template_name => 'sgrnas',
-        test_text => 'sgRNA test text.',
         get_sgrnas_url => uri_for('/get_sgrnas'),
     };
 };
 
 get '/get_sgrnas' => sub {
-    my $crRNAs = $test_targets->[0]->{crRNAs};
+    my $plate_number = param('plate_number');
+    my $well_id = param('well');
+    my $crRNA_name = param('crRNA_name');
+    my $target_info = param('target');
+    my $requestor = param('requestor');
+    my $status = param('status');
+    debug join(q{ }, 'PLATE_NAME: ', $plate_number,
+               'WELL: ', $well_id,
+               'crRNA NAME: ', $crRNA_name,
+               'TARGET: ', $target_info,
+               'REQUESTOR: ', $requestor,
+               'STATUS: ', $status,
+              );
+    
+    my $crRNAs;
+    if( $plate_number ){
+        if( $well_id ){
+            my $crRNA;
+            eval {
+                $crRNA = $crRNA_adaptor->fetch_by_plate_num_and_well( $plate_number, $well_id, );
+            };
+            $crRNAs = [ $crRNA ] if $crRNA;
+        }
+        else{
+            eval{
+                $crRNAs = $crRNA_adaptor->fetch_by_plate_num_and_well( $plate_number, );
+            };
+        }
+    }
+    elsif( $crRNA_name ){
+        eval{
+            $crRNAs = $crRNA_adaptor->fetch_all_by_name( $crRNA_name, );
+        };
+    }
+    elsif( $target_info ){
+        my @crRNAs;
+        my $targets = $target_adaptor->fetch_all_by_target_name_gene_id_gene_name( $target_info );
+        foreach my $target ( @{$targets} ){
+            my $crRNAs;
+            eval{
+                $crRNAs = $crRNA_adaptor->fetch_all_by_target( $target );
+            };
+            push @crRNAs, @{$crRNAs};
+        }
+        $crRNAs = \@crRNAs;
+    }
+    elsif( $requestor ){
+        my $targets = $target_adaptor->fetch_all_by_requestor( $requestor );
+        $crRNAs = $crRNA_adaptor->fetch_all_by_targets( $targets );
+    }
+    elsif( $status ){
+        $crRNAs = $crRNA_adaptor->fetch_all_by_status( $status );
+    }
+    # get targets for each crispr
+    foreach my $crRNA ( @{$crRNAs} ){
+        if( defined $crRNA && !defined $crRNA->target ){
+            $crRNA->target( $target_adaptor->fetch_by_crRNA_id( $crRNA->crRNA_id ) );
+        }
+    }
+    
+    if( $debug ){
+        $crRNAs = $test_targets->[0]->{crRNAs};
+    }
 
-    template 'show_sgrnas', {
-        template_name => 'sgrnas',
-        test_text => 'sgRNA test text.',
-        crRNAs => $crRNAs,
-        sgrna_url => uri_for('/sgrna'),
-    };
+    my $err_msg;
+    if( scalar @{$crRNAs} == 0 ){
+        $err_msg = "Couldn't find any matches for:<br>";
+        $err_msg .= join(' - ', 'Plate', $plate_number, ) . '<br>' if $plate_number;
+        $err_msg .= join(' - ', 'Well', $well_id, ) . '<br>' if $well_id;
+        $err_msg .= join(' - ', 'crRNA Name', $crRNA_name, ) . '<br>' if $crRNA_name;
+        $err_msg .= join(' - ', 'Target', $target_info, ) . '<br>' if $target_info;
+        $err_msg .= join(' - ', 'Requestor', $requestor, ) . '<br>' if $requestor;
+        $err_msg .= join(' - ', 'Status', $status, ) . '<br>' if $status;
+    }
+
+    if( $err_msg ){
+        template 'sgrnas', {
+            template_name => 'sgrnas',
+            err_msg => $err_msg,
+            get_sgrnas_url => uri_for('/get_sgrnas'),
+        };
+    }
+    else{
+        template 'show_sgrnas', {
+            template_name => 'sgrnas',
+            crRNAs => $crRNAs,
+            sgrna_url => uri_for('/sgrna'),
+        };
+    }
 };
 
 get '/sgrna/:id' => sub {
