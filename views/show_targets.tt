@@ -19,8 +19,8 @@
           </thead>
           <tbody>
           [% FOREACH target IN targets %]
-          <tr>
-            <td><a href="[% target_url %]/[% target.id %]" id="[% target.target_name %]" >[% target.target_name %]</a></td>
+          <tr class="[% target.status %]">
+            <td><a href="[% target_url %]/[% target.target_id %]" id="[% target.target_name %]" >[% target.target_name %]</a></td>
             <td>[% target.gene_name %]</td>
             <td>[% target.gene_id %]</td>
             <td>[% target.requestor %]</td>
