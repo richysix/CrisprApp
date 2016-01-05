@@ -166,14 +166,20 @@ get '/get_targets' => sub {
     }
 };
 
-get '/target/:id' => sub {
-    my $db_id = param('id');
+get '/target/:target_id' => sub {
+    my $db_id = param('target_id');
     debug 'DB_ID: ', $db_id;
-    my $target = $test_targets->[0];
-
+    my $target;
+    if( $debug ){
+        $target = $test_targets->[$db_id-1];
+    }
+    else{
+        $target = $target_adaptor->fetch_by_id( param('target_id') );
+        $target->crRNAs( $crRNA_adaptor->fetch_all_by_target($target) );
+    }
+    
     template 'target', {
         template_name => 'target',
-        test_text => 'This is some individual target test text.',
         target => $target,
         sgrna_url => uri_for('/sgrna'),
     };
