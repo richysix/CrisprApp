@@ -1,8 +1,28 @@
 <div class="container">
   <!-- page tile -->
   <div class="page-header">
-    <h1 id="title">Crispr/Cas9 sgRNAs</h1>
+    <h1 id="title">Crispr/Cas9 sgRNA</h1>
   </div>
   <div id="content"  class="container-fluid"  role="main">
+    <table class="table table-striped" id="target-table">
+        <caption>sgRNA</caption>
+        <thead>
+          <th>crRNA Name</th>
+          <th>Sequence</th>
+          <th>Status</th>
+          <th>Status Changed</th>
+        </thead>
+        <tbody>
+        <tr class="[% crRNA.status %]">
+          <td>[% crRNA.name %]</td>
+          <td>[% crRNA.sequence %]</td>
+          <td>[% crRNA.status %]</td>
+          <td>[% crRNA.status_changed %]</td>
+        </tr>
+        </tbody>
+    </table>
+    <div class="row">
+      <a href="[% get_primers_url %]?crRNA_id=[% crRNA.crRNA_id %]" class="btn btn-primary">Get Primers</a>
+    </div>
   </div>
 </div> <!-- / container -->

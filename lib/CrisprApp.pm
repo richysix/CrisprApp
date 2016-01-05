@@ -284,12 +284,19 @@ get '/get_sgrnas' => sub {
     }
 };
 
-get '/sgrna/:id' => sub {
-    my $crRNA = $test_targets->[0]->{crRNAs}->[0];
+get '/sgrna/:crRNA_id' => sub {
+    my $db_id = param('crRNA_id');
+    debug 'DB_ID: ', $db_id;
+    my $crRNA;
+    if( $debug ){
+        $crRNA = $test_targets->[0]->{crRNAs}->[$db_id-1];
+    }
+    else{
+        $crRNA = $crRNA_adaptor->fetch_by_id( param('crRNA_id') );
+    }
     template 'sgrna', {
-        template_name => 'sgrna',
-        test_text => 'This is some individual sgRNA test text.',
         crRNA => $crRNA,
+        get_primers_url => uri_for('/get_primer_pairs'),
     };
 };
 
