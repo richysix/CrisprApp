@@ -1,0 +1,64 @@
+<div class="container">
+  <!-- page tile -->
+  <div class="page-header">
+    <h1 id="title">Crispr/Cas9 Primers</h1>
+  </div>
+  <div id="content"  class="container-fluid"  role="main">
+    <div class="row">
+      <div class="col-lg-6">
+        [% IF err_msg %]
+        <div class="alert alert-dismissible alert-danger">
+          <button type="button" class="close" data-dismiss="alert" aria-label="close">
+            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+          </button>
+          <strong>Retrieve Primers</strong><p>[% err_msg %]</p>
+        </div>
+        [% END %]
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-lg-6">
+        <form class="form-horizontal" action="[% get_primers_url %]" method="get">
+          <fieldset>
+            <legend>Retrieve Primers</legend>
+            <div class="form-group">
+              <label for="input_plate_number" class="col-lg-3 control-label">Plate Number</label>
+              <div class="col-lg-9" >
+                <input class="form-control" id="input_plate_number" placeholder="19" type="text" name="plate_number">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="input_well" class="col-lg-3 control-label">Well</label>
+              <div class="col-lg-9" >
+                <input class="form-control" id="input_well" placeholder="A01" type="text" name="well">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="input_crRNA_name" class="col-lg-3 control-label">Crispr Name</label>
+              <div class="col-lg-9" >
+                <input class="form-control" id="input_crRNA_name" placeholder="crRNA:1:101-123:1" type="text" name="crRNA_name">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="input_crispr_plate" class="col-lg-3 control-label">Crispr Plate</label>
+              <div class="col-lg-9" >
+                <input class="form-control" id="input_crispr_plate" placeholder="26" type="text" name="crispr_plate">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="input_crispr_well" class="col-lg-3 control-label">Crispr Well</label>
+              <div class="col-lg-9" >
+                <input class="form-control" id="input_crispr_well" placeholder="A01" type="text" name="crispr_well">
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="col-lg-9 col-lg-offset-3">
+                <button type="submit" class="btn btn-primary">Get Primers</button>
+              </div>
+            </div>
+          </fieldset>
+        </form>
+      </div> <!-- /col -->
+    </div> <!-- /row -->
+  </div>
+</div> <!-- / container -->
