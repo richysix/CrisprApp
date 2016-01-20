@@ -47,7 +47,7 @@ if( $debug ){
             status_changed => '2015-12-02',
         },
     ];
-    
+
     $test_pair_info = [
         {
             pair_name => '19:10678178-10679198:1',
@@ -72,6 +72,44 @@ if( $debug ){
                 well_id => 'B01',
             },
             right_primer => {
+                sequence => 'TGATGAGCATACTGCACGATATTAG',
+                plate_name => 'CR_000026h',
+                well_id => 'B01',
+            },
+        },
+    ];
+    $test_primer_info = [
+        {
+            pair_name => '19:10678178-10679198:1',
+            primer => {
+                name => '19:10678178-10678198:1',
+                sequence => 'ACGATAGCATATAGACGAATAGG',
+                plate_name => 'CR_000026h',
+                well_id => 'A01',
+            },
+        },
+        {
+            pair_name => '19:10678178-10679198:1',
+            primer => {
+                name => '19:10679178-10679198:-1'
+                sequence => 'TGATGAGCATACTGCACGATATTAG',
+                plate_name => 'CR_000026h',
+                well_id => 'A01',
+            },
+        },
+        {
+            pair_name => '25:1-250:1',
+            primer => {
+                name => '25:1-20:1'
+                sequence => 'GACGATGACGATAGATGACGA',
+                plate_name => 'CR_000026h',
+                well_id => 'B01',
+            },
+        },
+        {
+            pair_name => '25:1-250:1',
+            primer => {
+                name => '25:230-250:-1'
                 sequence => 'TGATGAGCATACTGCACGATATTAG',
                 plate_name => 'CR_000026h',
                 well_id => 'B01',
@@ -150,8 +188,8 @@ get '/get_targets' => sub {
         $err_msg .= join(' - ', 'Target', $target_info, ) . '<br>' if $target_info;
         $err_msg .= join(' - ', 'Requestor', $requestor, ) . '<br>' if $requestor;
         $err_msg .= join(' - ', 'Status', $status, ) . '<br>' if $status;
-    }    
-    
+    }
+
     if( $err_msg ){
         template 'targets', {
             err_msg => $err_msg,
@@ -162,7 +200,7 @@ get '/get_targets' => sub {
         template 'show_targets', {
             targets => $targets,
             target_url => uri_for('/target'),
-        };        
+        };
     }
 };
 
@@ -177,7 +215,7 @@ get '/target/:target_id' => sub {
         $target = $target_adaptor->fetch_by_id( param('target_id') );
         $target->crRNAs( $crRNA_adaptor->fetch_all_by_target($target) );
     }
-    
+
     template 'target', {
         template_name => 'target',
         target => $target,
@@ -206,7 +244,7 @@ get '/get_sgrnas' => sub {
                'REQUESTOR: ', $requestor,
                'STATUS: ', $status,
               );
-    
+
     my $crRNAs;
     if( $plate_number ){
         if( $well_id ){
@@ -252,7 +290,7 @@ get '/get_sgrnas' => sub {
             $crRNA->target( $target_adaptor->fetch_by_crRNA_id( $crRNA->crRNA_id ) );
         }
     }
-    
+
     if( $debug ){
         $crRNAs = $test_targets->[0]->{crRNAs};
     }
@@ -288,15 +326,51 @@ get '/sgrna/:crRNA_id' => sub {
     my $db_id = param('crRNA_id');
     debug 'DB_ID: ', $db_id;
     my $crRNA;
+    my $primer_info = [];
     if( $debug ){
         $crRNA = $test_targets->[0]->{crRNAs}->[$db_id-1];
+        $primer_info = $test_primer_info;
     }
     else{
         $crRNA = $crRNA_adaptor->fetch_by_id( param('crRNA_id') );
+
+        # retrieve primer pairs for crispr
+        my $primer_pairs = $primer_pair_adaptor->fetch_all_by_crRNA_id( param('crRNA_id') );
+        my $primer_msg;
+        my %plate_for;
+        if( scalar @{$primer_pairs} == 0 ){
+            $primer_msg = "No Primers!";
+        }
+        else{
+            foreach my $primer_pair ( @{$primer_pairs} ){
+                foreach my $primer ( $primer_pair->left_primer $primer_pair->right_primer ){
+                    my $info = {
+                        pair_name => $primer_pair->pair_name,
+                    };
+                    my $plate;
+                    if( !exists $plate_for{ $primer->plate_id } ){
+                        $plate = $plate_adaptor->fetch_empty_plate_by_id( $primer->plate_id );
+                        $plate_for{ $primer->plate_id } = $plate;
+                    }
+                    else{
+                        $plate = $plate_for{ $primer->plate_id };
+                    }
+                    $info->{'primer'} = {
+                            name => $primer->name,
+                            sequence => $primer->sequence,
+                            plate_name => $plate->plate_name,
+                            well_id => $primer->well_id,
+                        };
+                }
+
+                push @{$primer_info}, $info;
+            }
+        }
     }
     template 'sgrna', {
         crRNA => $crRNA,
-        get_primers_url => uri_for('/get_primer_pairs'),
+        primer_msg => $primer_msg,
+        primer_info => $primer_info,
     };
 };
 
@@ -313,9 +387,9 @@ get '/get_primer_pairs' => sub {
     my $crRNA_name = param('crRNA_name');
     my $crispr_plate = param('crispr_plate');
     my $crispr_well = param('crispr_well');
-    
+
     debug $crRNA_id;
-    
+
     my $pair_info = [];
     my $primer_pairs = [];
     my $err_msg;
@@ -338,7 +412,7 @@ get '/get_primer_pairs' => sub {
         }
         if( $crRNA_name ){
             $crRNAs = $crRNA_adaptor->fetch_all_by_name( $crRNA_name );
-            
+
         }
         if( $crispr_plate ){
             if( $crispr_well ){
@@ -357,7 +431,7 @@ get '/get_primer_pairs' => sub {
         if( $crRNAs ){
             $primer_pairs = $primer_pair_adaptor->fetch_all_by_crRNAs( $crRNAs );
         }
-        
+
         my %plate_for;
         if( scalar @{$primer_pairs} == 0 ){
             $err_msg = "Couldn't find any matches for:<br>";
@@ -386,7 +460,7 @@ get '/get_primer_pairs' => sub {
                         plate_name => $plate->plate_name,
                         well_id => $primer_pair->left_primer->well_id,
                     };
-                
+
                 if( !exists $plate_for{ $primer_pair->right_primer->plate_id } ){
                     $plate = $plate_adaptor->fetch_empty_plate_by_id( $primer_pair->right_primer->plate_id );
                     $plate_for{ $primer_pair->right_primer->plate_id } = $plate;
@@ -399,12 +473,12 @@ get '/get_primer_pairs' => sub {
                         plate_name => $plate->plate_name,
                         well_id => $primer_pair->right_primer->well_id,
                     };
-                
+
                 push @{$pair_info}, $info;
             }
         }
     }
-    
+
     if( $err_msg ){
         template 'primer_pairs', {
             err_msg => $err_msg,
@@ -414,7 +488,7 @@ get '/get_primer_pairs' => sub {
     else{
         template 'show_primer_pairs', {
             pair_info => $pair_info,
-        };        
+        };
     }
 };
 
