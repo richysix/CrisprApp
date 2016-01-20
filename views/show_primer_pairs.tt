@@ -6,7 +6,7 @@
   <div id="content"  class="container-fluid"  role="main">
     <p> [% test_text %] </p>
     <div class="row">
-      <table class="table table-striped" id="target-table">
+      <table class="table table-striped" id="primer-table">
           <caption>Primers</caption>
           <thead>
             <tr>
