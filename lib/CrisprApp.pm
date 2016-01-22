@@ -7,7 +7,7 @@ use English qw( -no_match_vars );
 use Readonly;
 
 my $debug = 1;
-my ( $test_targets, $test_pair_info, );
+my ( $test_targets, $test_pair_info, $test_primer_info, $test_inj_info, );
 if( $debug ){
     $test_targets = [
         {
@@ -26,6 +26,13 @@ if( $debug ){
                     sequence => 'GGGACATAGACATATAGACGAGG',
                     status => 'FAILED_EMBRYO_SCREENING',
                     status_changed => '2015-12-02',
+                    target_gene_id => 'test_gene_id_1',
+                    target_gene_name => 'test_gene_1',
+                    requestor => 'test_usr1',
+                    well => {
+                        plate_name => 'CR_000026-',
+                        position => 'A01',
+                    }
                 },
                 {
                     crRNA_id => 2,
@@ -33,6 +40,13 @@ if( $debug ){
                     sequence => 'GGTACGATATATATGCAACGAGG',
                     status => 'PASSED_EMBRYO_SCREENING',
                     status_changed => '2015-12-02',
+                    target_gene_id => 'test_gene_id_1',
+                    target_gene_name => 'test_gene_1',
+                    requestor => 'test_usr1',
+                    well => {
+                        plate_name => 'CR_000026-',
+                        position => 'B01',
+                    }
                 }
             ]
         },
@@ -78,6 +92,7 @@ if( $debug ){
             },
         },
     ];
+    
     $test_primer_info = [
         {
             pair_name => '19:10678178-10679198:1',
@@ -91,7 +106,7 @@ if( $debug ){
         {
             pair_name => '19:10678178-10679198:1',
             primer => {
-                name => '19:10679178-10679198:-1'
+                name => '19:10679178-10679198:-1',
                 sequence => 'TGATGAGCATACTGCACGATATTAG',
                 plate_name => 'CR_000026h',
                 well_id => 'A01',
@@ -100,7 +115,7 @@ if( $debug ){
         {
             pair_name => '25:1-250:1',
             primer => {
-                name => '25:1-20:1'
+                name => '25:1-20:1',
                 sequence => 'GACGATGACGATAGATGACGA',
                 plate_name => 'CR_000026h',
                 well_id => 'B01',
@@ -109,11 +124,25 @@ if( $debug ){
         {
             pair_name => '25:1-250:1',
             primer => {
-                name => '25:230-250:-1'
+                name => '25:230-250:-1',
                 sequence => 'TGATGAGCATACTGCACGATATTAG',
                 plate_name => 'CR_000026h',
                 well_id => 'B01',
             },
+        },
+    ];
+    
+    $test_inj_info = [
+        {
+            db_id => 1,
+            pool_name => 380,
+            date => '2015-09-23',
+            line_injected => 'H1851',
+            line_raised => 'MR3738344',
+            guideRNAs => [
+                { crRNA => $test_targets->[0]->{'crRNAs'}->[0], },
+                { crRNA => $test_targets->[0]->{'crRNAs'}->[1], },
+            ],
         },
     ];
 }
@@ -129,7 +158,8 @@ our $VERSION = '0.1';
 
 Readonly my $crispr_db => '/nfs/users/nfs_r/rw4/config/rw4_crispr_test.conf';
 
-my ( $target_adaptor, $crRNA_adaptor, $primer_pair_adaptor, $plate_adaptor );
+my ( $target_adaptor, $crRNA_adaptor, $primer_pair_adaptor, $plate_adaptor,
+    $injection_pool_adaptor, );
 if( !$debug ){
     # connect to db
     my $DB_connection = Crispr::DB::DBConnection->new( $crispr_db );
@@ -138,6 +168,7 @@ if( !$debug ){
     $crRNA_adaptor = $DB_connection->get_adaptor( 'crRNA' );
     $primer_pair_adaptor = $DB_connection->get_adaptor( 'primer_pair' );
     $plate_adaptor = $DB_connection->get_adaptor( 'plate' );
+    $injection_pool_adaptor = $DB_connection->get_adaptor( 'injection_pool' );
 }
 
 hook before_template => sub {
@@ -147,6 +178,9 @@ hook before_template => sub {
     $tokens->{'targets_url'} = uri_for('/targets');
     $tokens->{'sgrnas_url'} = uri_for('/sgrnas');
     $tokens->{'primers_url'} = uri_for('/primer_pairs');
+    $tokens->{'injections_url'} = uri_for('/injections');
+    $tokens->{'add_injections_form_url'} = uri_for('/add_injections_form');
+    $tokens->{'add_injections_url'} = uri_for('/add_injections');
     $tokens->{'miseq_url'} = uri_for('/miseq');
 };
 
@@ -327,26 +361,27 @@ get '/sgrna/:crRNA_id' => sub {
     debug 'DB_ID: ', $db_id;
     my $crRNA;
     my $primer_info = [];
+    my $primer_msg;
     if( $debug ){
         $crRNA = $test_targets->[0]->{crRNAs}->[$db_id-1];
         $primer_info = $test_primer_info;
     }
     else{
         $crRNA = $crRNA_adaptor->fetch_by_id( param('crRNA_id') );
-
+        
         # retrieve primer pairs for crispr
         my $primer_pairs = $primer_pair_adaptor->fetch_all_by_crRNA_id( param('crRNA_id') );
-        my $primer_msg;
+        
         my %plate_for;
         if( scalar @{$primer_pairs} == 0 ){
             $primer_msg = "No Primers!";
         }
         else{
             foreach my $primer_pair ( @{$primer_pairs} ){
-                foreach my $primer ( $primer_pair->left_primer $primer_pair->right_primer ){
-                    my $info = {
-                        pair_name => $primer_pair->pair_name,
-                    };
+                my $info = {
+                    pair_name => $primer_pair->pair_name,
+                };
+                foreach my $primer ( $primer_pair->left_primer, $primer_pair->right_primer ){
                     my $plate;
                     if( !exists $plate_for{ $primer->plate_id } ){
                         $plate = $plate_adaptor->fetch_empty_plate_by_id( $primer->plate_id );
@@ -495,7 +530,6 @@ get '/get_primer_pairs' => sub {
 get '/miseq' => sub {
     template 'miseq', {
         template_name => 'miseq',
-        test_text => 'This is some different test text!',
         add_miseq_url => uri_for('add_miseq'),
         get_miseq_url => uri_for('get_miseq'),
     };
@@ -530,6 +564,107 @@ get '/get_miseq' => sub {
         test_text => 'This is some different test text for a retrieved MiSeq run!',
         plex => $plex,
         err_msg => $err_msg,
+    };
+};
+
+get '/injections' => sub {
+    template 'injections', {
+        template_name => 'injections',
+        test_text => 'This is some different INJECTION test text!',
+        get_injections_url => uri_for('/get_injections'),
+    };
+};
+
+get '/get_injections' => sub {
+    my $inj_num = param('inj_number');
+    my $date = param('date');
+    
+    my $injections;
+    if( $debug ){
+        $injections = $test_inj_info;
+    }
+    
+    if( scalar @{$injections} == 1 ){
+        template 'injection', {
+            injection => $injections->[0],
+        };
+    }
+    else{
+        template 'show_injections', {
+            injections => $injections,
+            injection_url => uri_for('/injection'),
+        };
+    }
+};
+
+get '/injection/:db_id' => sub {
+    my $db_id = param('db_id');
+    
+    my $injection;
+    if( $debug ){
+        $injection = $test_inj_info->[0];
+    }
+    else{
+        $injection = $injection_pool_adaptor->fetch_by_id( $db_id );
+    }
+    
+    template 'injection', {
+        injection => $injection,
+    };
+};
+
+get '/add_injections' => sub {
+    
+    my $preps = [
+        {
+            db_id => 245,
+            cas9 => {
+                type => 'ZfnCas9n',
+                species => 's_pyogenes',
+                vector => 'pCS2',
+                name => 'pCS2-ZfnCas9n',
+            },
+            prep_type => 'rna',
+            made_by => 'crispr_test_user',
+            date => '2014-09-30',
+            notes => 'Some interesting notes',
+        },
+        {
+            db_id => 340,
+            cas9 => {
+                type => 'ZfnCas9n',
+                species => 's_pyogenes',
+                vector => 'pCS2',
+                name => 'pCS2-ZfnCas9n',
+            },
+            prep_type => 'rna',
+            made_by => 'crispr_test_user',
+            date => '2015-01-30',
+            notes => 'Some interesting notes',
+        },
+        {
+            db_id => 246,
+            cas9 => {
+                type => 'ZfnCas9-D10An',
+                species => 's_pyogenes',
+                vector => 'pCS2',
+                name => 'pCS2-ZfnCas9n-D10An',
+            },
+            prep_type => 'rna',
+            made_by => 'crispr_test_user',
+            date => '2015-01-30',
+            notes => 'Some interesting notes',
+        },
+    ];
+    my $cas9_preps = [
+        { name => 'ZfnCas9n(' . '246' . ')' },
+        { name => 'ZfnCas9n(' . '340' . ')' },
+        { name => 'ZfnCas9n-D10An(' . '246' . ')' },
+    ];
+    template 'add_injections', {
+        cas9_preps => $cas9_preps,
+        injection => $test_inj_info->[0],
+        success_msg => 'Success!'
     };
 };
 
