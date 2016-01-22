@@ -92,7 +92,7 @@ if( $debug ){
             },
         },
     ];
-    
+
     $test_primer_info = [
         {
             pair_name => '19:10678178-10679198:1',
@@ -131,7 +131,7 @@ if( $debug ){
             },
         },
     ];
-    
+
     $test_inj_info = [
         {
             db_id => 1,
@@ -169,6 +169,7 @@ if( !$debug ){
     $primer_pair_adaptor = $DB_connection->get_adaptor( 'primer_pair' );
     $plate_adaptor = $DB_connection->get_adaptor( 'plate' );
     $injection_pool_adaptor = $DB_connection->get_adaptor( 'injection_pool' );
+    $cas9_prep_adaptor = $DB_connection->get_adaptor( 'cas9_prep' );
 }
 
 hook before_template => sub {
@@ -368,10 +369,10 @@ get '/sgrna/:crRNA_id' => sub {
     }
     else{
         $crRNA = $crRNA_adaptor->fetch_by_id( param('crRNA_id') );
-        
+
         # retrieve primer pairs for crispr
         my $primer_pairs = $primer_pair_adaptor->fetch_all_by_crRNA_id( param('crRNA_id') );
-        
+
         my %plate_for;
         if( scalar @{$primer_pairs} == 0 ){
             $primer_msg = "No Primers!";
@@ -578,12 +579,12 @@ get '/injections' => sub {
 get '/get_injections' => sub {
     my $inj_num = param('inj_number');
     my $date = param('date');
-    
+
     my $injections;
     if( $debug ){
         $injections = $test_inj_info;
     }
-    
+
     if( scalar @{$injections} == 1 ){
         template 'injection', {
             injection => $injections->[0],
@@ -599,7 +600,7 @@ get '/get_injections' => sub {
 
 get '/injection/:db_id' => sub {
     my $db_id = param('db_id');
-    
+
     my $injection;
     if( $debug ){
         $injection = $test_inj_info->[0];
@@ -607,62 +608,69 @@ get '/injection/:db_id' => sub {
     else{
         $injection = $injection_pool_adaptor->fetch_by_id( $db_id );
     }
-    
+
     template 'injection', {
         injection => $injection,
     };
 };
 
 get '/add_injections' => sub {
-    
-    my $preps = [
-        {
-            db_id => 245,
-            cas9 => {
-                type => 'ZfnCas9n',
-                species => 's_pyogenes',
-                vector => 'pCS2',
-                name => 'pCS2-ZfnCas9n',
+    my $cas9_preps;
+    my @cas9_preps;
+    if( $debug ){
+         $cas9_preps = [
+            {
+                db_id => 245,
+                cas9 => {
+                    type => 'ZfnCas9n',
+                    species => 's_pyogenes',
+                    vector => 'pCS2',
+                    name => 'pCS2-ZfnCas9n',
+                },
+                prep_type => 'rna',
+                made_by => 'crispr_test_user',
+                date => '2014-09-30',
+                notes => 'Some interesting notes',
             },
-            prep_type => 'rna',
-            made_by => 'crispr_test_user',
-            date => '2014-09-30',
-            notes => 'Some interesting notes',
-        },
-        {
-            db_id => 340,
-            cas9 => {
-                type => 'ZfnCas9n',
-                species => 's_pyogenes',
-                vector => 'pCS2',
-                name => 'pCS2-ZfnCas9n',
+            {
+                db_id => 340,
+                cas9 => {
+                    type => 'ZfnCas9n',
+                    species => 's_pyogenes',
+                    vector => 'pCS2',
+                    name => 'pCS2-ZfnCas9n',
+                },
+                prep_type => 'rna',
+                made_by => 'crispr_test_user',
+                date => '2015-01-30',
+                notes => 'Some interesting notes',
             },
-            prep_type => 'rna',
-            made_by => 'crispr_test_user',
-            date => '2015-01-30',
-            notes => 'Some interesting notes',
-        },
-        {
-            db_id => 246,
-            cas9 => {
-                type => 'ZfnCas9-D10An',
-                species => 's_pyogenes',
-                vector => 'pCS2',
-                name => 'pCS2-ZfnCas9n-D10An',
+            {
+                db_id => 246,
+                cas9 => {
+                    type => 'ZfnCas9-D10An',
+                    species => 's_pyogenes',
+                    vector => 'pCS2',
+                    name => 'pCS2-ZfnCas9n-D10An',
+                },
+                prep_type => 'rna',
+                made_by => 'crispr_test_user',
+                date => '2015-01-30',
+                notes => 'Some interesting notes',
             },
-            prep_type => 'rna',
-            made_by => 'crispr_test_user',
-            date => '2015-01-30',
-            notes => 'Some interesting notes',
-        },
-    ];
-    my $cas9_preps = [
-        { name => 'ZfnCas9n(' . '246' . ')' },
-        { name => 'ZfnCas9n(' . '340' . ')' },
-        { name => 'ZfnCas9n-D10An(' . '246' . ')' },
-    ];
+        ];
+    }
+    else{
+        # get all cas9_preps from the db
+        my $cas9_preps = $cas9_prep_adaptor->_fetch();
+    }
+
+    foreach my $prep ( @{$cas9_preps} ){
+        my $name = join(q{}, $prep->type, '(', $prep->db_id, ')' );
+        push @cas9_preps, { name => $name, };
+    }
     template 'add_injections', {
-        cas9_preps => $cas9_preps,
+        cas9_preps => \@cas9_preps,
         injection => $test_inj_info->[0],
         success_msg => 'Success!'
     };
