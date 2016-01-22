@@ -3,3 +3,16 @@ footer{
   padding-top: 10px;
   border-top: 1px solid #eeeeee;
 }
+
+.well {
+  background: white;
+}
+
+.well-sgRNA {
+  background: #fcf8e3;
+}
+
+.well-primer {
+  background: #ffddcc;
+}
+
