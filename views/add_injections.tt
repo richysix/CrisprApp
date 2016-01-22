@@ -16,28 +16,9 @@
         [% END %]
       </div>
     </div>
-    
-<!--    injection_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    injection_name VARCHAR(30) NOT NULL,
-    cas9_prep_id INT UNSIGNED NOT NULL,
-    cas9_concentration DECIMAL(5,1) NOT NULL,
-    date DATE NOT NULL,
-    line_injected VARCHAR(10) NOT NULL,
-    line_raised VARCHAR(10),
-    sorted_by VARCHAR(40),
-    CONSTRAINT `injection_injection_name` UNIQUE ( `injection_name` ),
-    FOREIGN KEY (cas9_prep_id) REFERENCES cas9_prep(cas9_prep_id)
-) ENGINE = InnoDB;
-
-CREATE TABLE injection_pool (
-    injection_id INT UNSIGNED NOT NULL,
-    crRNA_id INT UNSIGNED NOT NULL,
-    guideRNA_prep_id INT UNSIGNED NOT NULL,
-    guideRNA_concentration INT UNSIGNED NOT NULL, -->
-
     <div class="row">
       <div class="col-lg-12">
-        <form role="form" action="[% add_injections_url %]" method="get">
+        <form role="form" action="[% add_injections_url %]" method="post">
           <fieldset>
             <legend>Add Injections</legend>
             <div class="row">
