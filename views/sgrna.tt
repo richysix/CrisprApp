@@ -5,23 +5,25 @@
   </div>
   <div id="content"  class="container-fluid"  role="main">
     <div class="row">
-      <table class="table table-striped" id="sgrna-table">
-          <caption>sgRNA</caption>
-          <thead>
-            <th>crRNA Name</th>
-            <th>Sequence</th>
-            <th>Status</th>
-            <th>Status Changed</th>
-          </thead>
-          <tbody>
-          <tr class="[% crRNA.status %]">
-            <td>[% crRNA.name %]</td>
-            <td>[% crRNA.sequence %]</td>
-            <td>[% crRNA.status %]</td>
-            <td>[% crRNA.status_changed %]</td>
-          </tr>
-          </tbody>
-      </table>
+      <h2>sgRNA</h2>
+      <div class="col-xs-12">
+        <table class="table table-striped" id="sgrna-table">
+            <thead>
+              <th>crRNA Name</th>
+              <th>Sequence</th>
+              <th>Status</th>
+              <th>Status Changed</th>
+            </thead>
+            <tbody>
+            <tr class="[% crRNA.status %]">
+              <td>[% crRNA.name %]</td>
+              <td>[% crRNA.sequence %]</td>
+              <td>[% crRNA.status %]</td>
+              <td>[% crRNA.status_changed %]</td>
+            </tr>
+            </tbody>
+        </table>
+      </div>
     </div><!-- /row -->
     <div class="row">
       <div class="col-xs-12 col-md-12">
@@ -33,29 +35,31 @@
           <p>[% primer_msg %]</p>
         </div>
         [% END %]
-        <table class="table table-striped" id="sgrna-primer-table">
-            <caption>Primers</caption>
-            <thead>
+        <h2>Primers</h2>
+        <div class="well well-primer">
+          <table class="table table-striped" id="sgrna-primer-table">
+              <thead>
+                <tr>
+                  <th scope='col'>Pair Name</th>
+                  <th scope='col'>Plate</th>
+                  <th scope='col'>Well</th>
+                  <th scope='col'>Name</th>
+                  <th scope='col'>Sequence</th>
+                </tr>
+              </thead>
+              <tbody>
+              [% FOREACH primer IN primer_info %]
               <tr>
-                <th scope='col'>Pair Name</th>
-                <th scope='col'>Plate</th>
-                <th scope='col'>Well</th>
-                <th scope='col'>Name</th>
-                <th scope='col'>Sequence</th>
+                <td>[% primer.pair_name %]</td>
+                <td>[% primer.primer.plate_name %]</td>
+                <td>[% primer.primer.well_id %]</td>
+                <td>[% primer.primer.name %]</td>
+                <td>[% primer.primer.sequence %]</td>
               </tr>
-            </thead>
-            <tbody>
-            [% FOREACH primer IN primer_info %]
-            <tr>
-              <td>[% primer.pair_name %]</td>
-              <td>[% primer.primer.plate_name %]</td>
-              <td>[% primer.primer.well_id %]</td>
-              <td>[% primer.primer.name %]</td>
-              <td>[% primer.primer.sequence %]</td>
-            </tr>
-            [% END %]
-            </tbody>
-        </table>
+              [% END %]
+              </tbody>
+          </table>
+        </div>
       </div>
     </div><!-- /row -->
   </div><!-- / container -->
