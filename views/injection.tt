@@ -1,0 +1,54 @@
+<div class="container">
+  <!-- page tile -->
+  <div class="page-header">
+    <h1 id="title">Injections</h1>
+  </div>
+    <div class="row">
+      <h2>Injection</h2>
+      <div class="col-xs-12">
+        <table class="table table-striped" id="injection-table">
+          <thead>
+            <th>Pool Name</th>
+            <th>Date</th>
+            <th>Line Injected</th>
+            <th>Line Raised</th>
+          </thead>
+          <tbody>
+          <tr class="">
+            <td>[% injection.pool_name %]</td>
+            <td>[% injection.date %]</td>
+            <td>[% injection.line_injected %]</td>
+            <td>[% injection.line_raised %]</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="row">
+      <h2>Guide RNAs</h2>
+      <div class="well well-sgRNA">
+        <table class="table table-striped" id="injection-sgrna-table">
+          <thead>
+            <th>crRNA Name</th>
+            <th>Plate</th>
+            <th>Well</th>
+            <th>Status</th>
+            <th>Gene Name</th>
+            <th>Requestor</th>
+          </thead>
+          <tbody>
+          [% FOREACH guideRNA IN injection.guideRNAs %]
+          <tr class="[% guideRNA.crRNA.status %]">
+            <td><a href="[% sgrna_url %]/[% guideRNA.crRNA.crRNA_id %]" id="[% guideRNA.crRNA.name %]" >[% guideRNA.crRNA.name %]</a></td>
+            <td>[% guideRNA.crRNA.well.plate_name %]</td>
+            <td>[% guideRNA.crRNA.well.position %]</td>
+            <td>[% guideRNA.crRNA.status %]</td>
+            <td>[% guideRNA.crRNA.target_gene_name %]</td>
+            <td>[% guideRNA.crRNA.requestor %]</td>
+          </tr>
+          [% END %]
+          </tbody>
+        </table>
+      </div>
+    </div>
+</div>
