@@ -593,7 +593,7 @@ get '/injections' => sub {
 };
 
 get '/get_injections' => sub {
-    my $inj_num = param('inj_number');
+    my $inj_num = param('inj_name');
     my $date = param('date');
 
     my $injections;
@@ -646,9 +646,10 @@ get '/add_injections_form' => sub {
         foreach my $prep ( @{$cas9_preps} ){
             my $name = join(q{}, $prep->cas9->type, '(', $prep->db_id, ')' );
             push @cas9_preps, { name => $name, };
-        }    
+        }
     }
-
+    # get next injection name
+    
     template 'add_injections', {
         cas9_preps => \@cas9_preps,
     };
@@ -691,10 +692,10 @@ post '/add_injection_to_db' => sub {
         }
     }
     warn Dumper( $gRNA_preps );
-    
+
     # make an injection object
     my $inj_pool = Crispr::DB::InjectionPool->new(
-        pool_name => param('inj_number'),
+        pool_name => param('inj_name'),
         cas9_prep => $cas9_prep,
         cas9_conc => param('cas9_conc'),
         date => param('date'),
@@ -720,7 +721,7 @@ post '/add_injection_to_db' => sub {
                             ', was successfully added to the database.',
                         );
     }
-    
+
     my $cas9_preps;
     my @cas9_preps;
     if( $debug ){
@@ -734,7 +735,7 @@ post '/add_injection_to_db' => sub {
         my $name = join(q{}, $prep->cas9->type, '(', $prep->db_id, ')' );
         push @cas9_preps, { name => $name, };
     }
-    
+
     template 'add_injections', {
         cas9_preps => \@cas9_preps,
         injection => $inj_pool,
