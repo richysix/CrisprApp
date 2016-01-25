@@ -6,8 +6,9 @@ use Data::Dumper;
 use English qw( -no_match_vars );
 use Readonly;
 
-my $debug = 1;
-my ( $test_targets, $test_pair_info, $test_primer_info, $test_inj_info, );
+my $debug = 0;
+my ( $test_targets, $test_pair_info, $test_primer_info, $test_inj_info,
+    $test_cas9_preps, );
 if( $debug ){
     $test_targets = [
         {
@@ -145,6 +146,20 @@ if( $debug ){
             ],
         },
     ];
+    $test_cas9_preps = [    {
+           db_id => 245,
+           cas9 => {
+               type => 'ZfnCas9n',
+               species => 's_pyogenes',
+               vector => 'pCS2',
+               name => 'pCS2-ZfnCas9n',
+           },
+           prep_type => 'rna',
+           made_by => 'crispr_test_user',
+           date => '2014-09-30',
+           notes => 'Some interesting notes',
+       },
+   ];
 }
 else{
     use Crispr;
@@ -159,7 +174,7 @@ our $VERSION = '0.1';
 Readonly my $crispr_db => '/nfs/users/nfs_r/rw4/config/rw4_crispr_test.conf';
 
 my ( $target_adaptor, $crRNA_adaptor, $primer_pair_adaptor, $plate_adaptor,
-    $injection_pool_adaptor, );
+    $injection_pool_adaptor, $cas9_prep_adaptor, $guideRNA_adaptor, );
 if( !$debug ){
     # connect to db
     my $DB_connection = Crispr::DB::DBConnection->new( $crispr_db );
@@ -170,6 +185,7 @@ if( !$debug ){
     $plate_adaptor = $DB_connection->get_adaptor( 'plate' );
     $injection_pool_adaptor = $DB_connection->get_adaptor( 'injection_pool' );
     $cas9_prep_adaptor = $DB_connection->get_adaptor( 'cas9_prep' );
+    $guideRNA_adaptor = $DB_connection->get_adaptor( 'guidernaprep' );
 }
 
 hook before_template => sub {
@@ -181,7 +197,7 @@ hook before_template => sub {
     $tokens->{'primers_url'} = uri_for('/primer_pairs');
     $tokens->{'injections_url'} = uri_for('/injections');
     $tokens->{'add_injections_form_url'} = uri_for('/add_injections_form');
-    $tokens->{'add_injections_url'} = uri_for('/add_injections');
+    $tokens->{'add_injection_url'} = uri_for('/add_injection_to_db');
     $tokens->{'miseq_url'} = uri_for('/miseq');
 };
 
@@ -614,65 +630,116 @@ get '/injection/:db_id' => sub {
     };
 };
 
-get '/add_injections' => sub {
+get '/add_injections_form' => sub {
     my $cas9_preps;
     my @cas9_preps;
     if( $debug ){
-         $cas9_preps = [
-            {
-                db_id => 245,
-                cas9 => {
-                    type => 'ZfnCas9n',
-                    species => 's_pyogenes',
-                    vector => 'pCS2',
-                    name => 'pCS2-ZfnCas9n',
-                },
-                prep_type => 'rna',
-                made_by => 'crispr_test_user',
-                date => '2014-09-30',
-                notes => 'Some interesting notes',
-            },
-            {
-                db_id => 340,
-                cas9 => {
-                    type => 'ZfnCas9n',
-                    species => 's_pyogenes',
-                    vector => 'pCS2',
-                    name => 'pCS2-ZfnCas9n',
-                },
-                prep_type => 'rna',
-                made_by => 'crispr_test_user',
-                date => '2015-01-30',
-                notes => 'Some interesting notes',
-            },
-            {
-                db_id => 246,
-                cas9 => {
-                    type => 'ZfnCas9-D10An',
-                    species => 's_pyogenes',
-                    vector => 'pCS2',
-                    name => 'pCS2-ZfnCas9n-D10An',
-                },
-                prep_type => 'rna',
-                made_by => 'crispr_test_user',
-                date => '2015-01-30',
-                notes => 'Some interesting notes',
-            },
-        ];
+        $cas9_preps = $test_cas9_preps;
+        foreach my $prep ( @{$cas9_preps} ){
+            my $name = join(q{}, $prep->{cas9}->{type}, '(', $prep->{db_id}, ')' );
+            push @cas9_preps, { name => $name, };
+        }
     }
     else{
         # get all cas9_preps from the db
-        my $cas9_preps = $cas9_prep_adaptor->_fetch();
+        $cas9_preps = $cas9_prep_adaptor->_fetch();
+        foreach my $prep ( @{$cas9_preps} ){
+            my $name = join(q{}, $prep->cas9->type, '(', $prep->db_id, ')' );
+            push @cas9_preps, { name => $name, };
+        }    
     }
 
-    foreach my $prep ( @{$cas9_preps} ){
-        my $name = join(q{}, $prep->type, '(', $prep->db_id, ')' );
-        push @cas9_preps, { name => $name, };
-    }
     template 'add_injections', {
         cas9_preps => \@cas9_preps,
-        injection => $test_inj_info->[0],
-        success_msg => 'Success!'
+    };
+};
+
+post '/add_injection_to_db' => sub {
+    # check params
+    my $gRNA_preps;
+    my ( $err_msg, $success_msg );
+    my $cas9_prep;
+    if( $debug ){
+        $cas9_prep = $test_cas9_preps->[0];
+    }
+    else{
+        if( param('sgrnas') ){
+            foreach my $crispr_plate_well ( split /,/, param('sgrnas') ){
+                my $crRNA = $crRNA_adaptor->fetch_by_plate_num_and_well( split /_/, $crispr_plate_well );
+                my $gRNA_preps_from_db = $guideRNA_adaptor->fetch_all_by_crRNA_id( $crRNA->crRNA_id );
+                my $gRNA_prep;
+                warn Dumper( $gRNA_preps_from_db );
+                if( scalar @{ $gRNA_preps_from_db } == 0 ){
+                    $err_msg = "Could not find guide RNA prep for crispr $crispr_plate_well\n";
+                    last;
+                }
+                elsif( scalar @{ $gRNA_preps_from_db } > 1 ){
+                    # sort preps by date and picked most recent one
+                    $gRNA_prep = (sort { $b->date <=> $a->date } @{ $gRNA_preps_from_db })[0];
+                }
+                else{
+                    $gRNA_prep = $gRNA_preps_from_db->[0];
+                }
+                push @{$gRNA_preps}, $gRNA_prep;
+            }
+            warn Dumper( $gRNA_preps );
+        }
+        if( param('cas9') ){
+            param('cas9') =~ m/\( ([0-9]+) \)/xms;
+            my $cas9_prep_id = $1;
+            $cas9_prep = $cas9_prep_adaptor->fetch_by_id( $cas9_prep_id );
+        }
+    }
+    warn Dumper( $gRNA_preps );
+    
+    # make an injection object
+    my $inj_pool = Crispr::DB::InjectionPool->new(
+        pool_name => param('inj_number'),
+        cas9_prep => $cas9_prep,
+        cas9_conc => param('cas9_conc'),
+        date => param('date'),
+        line_injected => param('line_inj'),
+        line_raised => param('line_raised'),
+        sorted_by => undef,
+        guideRNAs => $gRNA_preps,
+    );
+    eval{
+        $inj_pool = $injection_pool_adaptor->store( $inj_pool );
+    };
+    if( $EVAL_ERROR ){
+        if( $EVAL_ERROR eq 'ALREADY EXISTS' ){
+            $err_msg = join(q{ }, 'Injection,',
+                            $inj_pool->pool_name,
+                            ', already exists in the database.',
+                        );
+        }
+    }
+    else{
+        $success_msg = join(q{ }, 'Injection,',
+                            $inj_pool->pool_name,
+                            ', was successfully added to the database.',
+                        );
+    }
+    
+    my $cas9_preps;
+    my @cas9_preps;
+    if( $debug ){
+        $cas9_preps = $test_cas9_preps;
+    }
+    else{
+        # get all cas9_preps from the db
+        $cas9_preps = $cas9_prep_adaptor->_fetch();
+    }
+    foreach my $prep ( @{$cas9_preps} ){
+        my $name = join(q{}, $prep->cas9->type, '(', $prep->db_id, ')' );
+        push @cas9_preps, { name => $name, };
+    }
+    
+    template 'add_injections', {
+        cas9_preps => \@cas9_preps,
+        injection => $inj_pool,
+        err_msg => $err_msg,
+        success_msg => $success_msg,
     };
 };
 
