@@ -4,72 +4,10 @@
     <h1 id="title">Injections</h1>
   </div>
   <div id="content"  class="container-fluid"  role="main">
-    <div class="row">
-      <div class="col-lg-6">
-        [% IF err_msg %]
-        <div class="alert alert-dismissible alert-danger">
-          <button type="button" class="close" data-dismiss="alert" aria-label="close">
-            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-          </button>
-          <strong>Retrieve sgRNAs</strong><p>[% err_msg %]</p>
-        </div>
-        [% END %]
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-lg-12">
-        <form role="form" action="[% add_injections_url %]" method="post">
-          <fieldset>
-            <legend>Add Injections</legend>
-            <div class="row">
-              <div class="form-group col-md-3">
-                <label for="input_inj_number" class="control-label">Name:</label>
-                <input class="form-control" id="input_inj_number" placeholder="380" type="text" name="inj_number">
-              </div>
-              <div class="form-group col-md-3">
-                <label for="input_cas9" class="control-label">Cas9:</label>
-                <select class="form-control" id="input_cas9" type="text" name="cas9">
-                  [% FOREACH cas9_prep IN cas9_preps %]
-                  <option value="[% cas9_prep.name %]">[% cas9_prep.name %]</option>
-                  [% END %]
-                </select>
-              </div>
-              <div class="form-group col-md-3">
-                <label for="input_cas9_conc" class="control-label">Cas9 conc:</label>
-                <input class="form-control" id="input_cas9_conc" placeholder="200" type="text" name="cas9_conc">
-              </div>
-              <div class="form-group col-md-3">
-                <label for="input_date" class="control-label">Date:</label>
-                <input class="form-control" id="input_date" placeholder="2015-01-22" type="date" name="date">
-              </div>
-            </div>
-            <div class="row">
-              <div class="form-group col-md-3">
-                <label for="input_line_inj" class="control-label">Line Inj:</label>
-                <input class="form-control" id="input_line_inj" placeholder="H1851" type="text" name="line_inj">
-              </div>
-              <div class="form-group col-md-3">
-                <label for="input_line_raised" class="control-label">Line Raised:</label>
-                <input class="form-control" id="input_line_raised" placeholder="MR3456" type="text" name="line_raised">
-              </div>
-              <div class="form-group col-md-3">
-                <label for="input_sgrnas" class="control-label">sgRNAs:</label>
-                <input class="form-control" id="input_sgrnas" placeholder="19_A01,19_B01" type="text" name="sgrnas">
-              </div>
-              <div class="form-group col-md-3">
-                <label for="input_sgrnas_conc" class="control-label">sgRNAs conc:</label>
-                <input class="form-control" id="input_sgrnas_conc" placeholder="10" type="text" name="sgrnas_conc">
-              </div>
-            </div>
-            <div class="form-group">
-              <div>
-                <button type="submit" class="btn btn-primary">Add Injection</button>
-              </div>
-            </div>
-          </fieldset>
-        </form>
-      </div> <!-- /col -->
-    </div> <!-- /row -->
+    [% INCLUDE views/alert
+        err_msg = err_msg
+        success_msg = success_msg
+    %]
     <div class="row">
       <div class="col-lg-6">
         [% IF err_msg %]
@@ -86,6 +24,60 @@
         [% END %]
       </div>
     </div>
+    <div class="row">
+      <div class="col-lg-12">
+        <form role="form" action="[% add_injection_url %]" method="post">
+          <fieldset>
+            <legend>Add Injections</legend>
+            <div class="row">
+              <div class="form-group col-md-3">
+                <label for="input_inj_number" class="control-label">Name:</label>
+                <input class="form-control" id="input_inj_number" placeholder="380" type="text" name="inj_number" required>
+              </div>
+              <div class="form-group col-md-3">
+                <label for="input_cas9" class="control-label">Cas9:</label>
+                <select class="form-control" id="input_cas9" type="text" name="cas9" required>
+                  [% FOREACH cas9_prep IN cas9_preps %]
+                  <option value="[% cas9_prep.name %]">[% cas9_prep.name %]</option>
+                  [% END %]
+                </select>
+              </div>
+              <div class="form-group col-md-3">
+                <label for="input_cas9_conc" class="control-label">Cas9 conc:</label>
+                <input class="form-control" id="input_cas9_conc" placeholder="200" type="text" name="cas9_conc" required>
+              </div>
+              <div class="form-group col-md-3">
+                <label for="input_date" class="control-label">Date:</label>
+                <input class="form-control" id="input_date" placeholder="2015-01-22" type="date" name="date" required>
+              </div>
+            </div>
+            <div class="row">
+              <div class="form-group col-md-3">
+                <label for="input_line_inj" class="control-label">Line Inj:</label>
+                <input class="form-control" id="input_line_inj" placeholder="H1851" type="text" name="line_inj" required>
+              </div>
+              <div class="form-group col-md-3">
+                <label for="input_line_raised" class="control-label">Line Raised:</label>
+                <input class="form-control" id="input_line_raised" placeholder="MR3456" type="text" name="line_raised">
+              </div>
+              <div class="form-group col-md-3">
+                <label for="input_sgrnas" class="control-label">sgRNAs:</label>
+                <input class="form-control" id="input_sgrnas" placeholder="19_A01,19_B01" type="text" name="sgrnas" required>
+              </div>
+              <div class="form-group col-md-3">
+                <label for="input_sgrnas_conc" class="control-label">sgRNAs conc:</label>
+                <input class="form-control" id="input_sgrnas_conc" placeholder="10" type="text" name="sgrnas_conc" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <div>
+                <button type="submit" class="btn btn-primary">Add Injection</button>
+              </div>
+            </div>
+          </fieldset>
+        </form>
+      </div> <!-- /col -->
+    </div> <!-- /row -->
     [% IF injection %]
     <div class="row">
       <div class="col-lg-12">
