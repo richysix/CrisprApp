@@ -196,8 +196,6 @@ hook before_template => sub {
     $tokens->{'sgrnas_url'} = uri_for('/sgrnas');
     $tokens->{'primers_url'} = uri_for('/primer_pairs');
     $tokens->{'injections_url'} = uri_for('/injections');
-    $tokens->{'add_injections_form_url'} = uri_for('/add_injections_form');
-    $tokens->{'add_injection_url'} = uri_for('/add_injection_to_db');
     $tokens->{'miseq_url'} = uri_for('/miseq');
 };
 
@@ -240,6 +238,7 @@ get '/get_targets' => sub {
         $err_msg .= join(' - ', 'Requestor', $requestor, ) . '<br>' if $requestor;
         $err_msg .= join(' - ', 'Status', $status, ) . '<br>' if $status;
     }
+    my @targets = sort { $a->gene_id cmp $b->gene_id } @{$targets};
 
     if( $err_msg ){
         template 'targets', {
@@ -249,7 +248,7 @@ get '/get_targets' => sub {
     }
     else{
         template 'show_targets', {
-            targets => $targets,
+            targets => \@targets,
             target_url => uri_for('/target'),
         };
     }
@@ -584,10 +583,33 @@ get '/get_miseq' => sub {
     };
 };
 
+sub get_cas9_preps {
+    my $cas9_preps;
+    my @cas9_preps;
+    if( $debug ){
+        $cas9_preps = $test_cas9_preps;
+        foreach my $prep ( @{$cas9_preps} ){
+            my $name = join(q{}, $prep->{cas9}->{type}, '(', $prep->{db_id}, ')' );
+            push @cas9_preps, { name => $name, };
+        }
+    }
+    else{
+        # get all cas9_preps from the db
+        $cas9_preps = $cas9_prep_adaptor->_fetch();
+        foreach my $prep ( @{$cas9_preps} ){
+            my $name = join(q{}, $prep->cas9->type, '(', $prep->db_id, ')' );
+            push @cas9_preps, { name => $name, };
+        }
+    }
+    return( \@cas9_preps, );
+}
+
 get '/injections' => sub {
+    my $cas9_preps = get_cas9_preps();
     template 'injections', {
         template_name => 'injections',
-        test_text => 'This is some different INJECTION test text!',
+        cas9_preps => $cas9_preps,
+        add_injection_url => uri_for('/add_injection_to_db'),
         get_injections_url => uri_for('/get_injections'),
     };
 };
@@ -597,20 +619,64 @@ get '/get_injections' => sub {
     my $date = param('date');
 
     my $injections;
+    my $err_msg;
     if( $debug ){
         $injections = $test_inj_info;
     }
-
-    if( scalar @{$injections} == 1 ){
-        template 'injection', {
-            injection => $injections->[0],
+    else{
+        if( param('inj_name') ){
+            eval {
+                $injections = [ $injection_pool_adaptor->fetch_by_name( param('inj_name') ) ];
+            };
+            if( $EVAL_ERROR ){
+                if( $EVAL_ERROR =~ m/Couldn't\sretrieve\sinjection_pool/xms ){
+                    $err_msg = join(q{}, 'There is no injection_pool named, <strong>',
+                                    param('inj_name'),
+                                    '</strong> in the database.', ) . "\n";
+                }
+                else{
+                    die $EVAL_ERROR;
+                }
+            }
+        }
+        elsif( param('date') ){
+            eval {
+                $injections = $injection_pool_adaptor->fetch_all_by_date( param('date') );
+            };
+            if( $EVAL_ERROR ){
+                if( $EVAL_ERROR =~ m/There\sare\sno\sinjection_pools\sfor\sthe\sdate/xms ){
+                    $err_msg = join(q{}, 'There are no injection_pools for the date, <strong>',
+                                    param('date'),
+                                    '</strong> in the database.', ) . "\n";
+                }
+                else{
+                    die $EVAL_ERROR;
+                }
+            }
+        }
+        else{
+            $injections = $injection_pool_adaptor->_fetch();
+        }
+    }
+    warn 'ERROR MESSAGE: ' . $err_msg;
+    
+    if( $err_msg ){
+        template 'injections', {
+            err_msg => $err_msg,
         };
     }
     else{
-        template 'show_injections', {
-            injections => $injections,
-            injection_url => uri_for('/injection'),
-        };
+        if( scalar @{$injections} == 1 ){
+            template 'injection', {
+                injection => $injections->[0],
+            };
+        }
+        else{
+            template 'show_injections', {
+                injections => $injections,
+                injection_url => uri_for('/injection'),
+            };
+        }
     }
 };
 
@@ -630,38 +696,19 @@ get '/injection/:db_id' => sub {
     };
 };
 
-get '/add_injections_form' => sub {
-    my $cas9_preps;
-    my @cas9_preps;
-    if( $debug ){
-        $cas9_preps = $test_cas9_preps;
-        foreach my $prep ( @{$cas9_preps} ){
-            my $name = join(q{}, $prep->{cas9}->{type}, '(', $prep->{db_id}, ')' );
-            push @cas9_preps, { name => $name, };
-        }
-    }
-    else{
-        # get all cas9_preps from the db
-        $cas9_preps = $cas9_prep_adaptor->_fetch();
-        foreach my $prep ( @{$cas9_preps} ){
-            my $name = join(q{}, $prep->cas9->type, '(', $prep->db_id, ')' );
-            push @cas9_preps, { name => $name, };
-        }
-    }
-    # get next injection name
-    
-    template 'add_injections', {
-        cas9_preps => \@cas9_preps,
-    };
-};
-
 post '/add_injection_to_db' => sub {
     # check params
     my $gRNA_preps;
     my ( $err_msg, $success_msg );
     my $cas9_prep;
+    my $cas9_preps;
+    my @cas9_preps;
+    my $inj_pool;
     if( $debug ){
         $cas9_prep = $test_cas9_preps->[0];
+        #$cas9_preps = $test_cas9_preps;
+        $success_msg = 'SUCCESS';
+        $inj_pool = undef;
     }
     else{
         if( param('sgrnas') ){
@@ -669,7 +716,6 @@ post '/add_injection_to_db' => sub {
                 my $crRNA = $crRNA_adaptor->fetch_by_plate_num_and_well( split /_/, $crispr_plate_well );
                 my $gRNA_preps_from_db = $guideRNA_adaptor->fetch_all_by_crRNA_id( $crRNA->crRNA_id );
                 my $gRNA_prep;
-                warn Dumper( $gRNA_preps_from_db );
                 if( scalar @{ $gRNA_preps_from_db } == 0 ){
                     $err_msg = "Could not find guide RNA prep for crispr $crispr_plate_well\n";
                     last;
@@ -681,66 +727,71 @@ post '/add_injection_to_db' => sub {
                 else{
                     $gRNA_prep = $gRNA_preps_from_db->[0];
                 }
+                $gRNA_prep->injection_concentration( param('sgrnas_conc') );
                 push @{$gRNA_preps}, $gRNA_prep;
             }
-            warn Dumper( $gRNA_preps );
         }
         if( param('cas9') ){
             param('cas9') =~ m/\( ([0-9]+) \)/xms;
             my $cas9_prep_id = $1;
             $cas9_prep = $cas9_prep_adaptor->fetch_by_id( $cas9_prep_id );
         }
-    }
-    warn Dumper( $gRNA_preps );
-
-    # make an injection object
-    my $inj_pool = Crispr::DB::InjectionPool->new(
-        pool_name => param('inj_name'),
-        cas9_prep => $cas9_prep,
-        cas9_conc => param('cas9_conc'),
-        date => param('date'),
-        line_injected => param('line_inj'),
-        line_raised => param('line_raised'),
-        sorted_by => undef,
-        guideRNAs => $gRNA_preps,
-    );
-    eval{
-        $inj_pool = $injection_pool_adaptor->store( $inj_pool );
-    };
-    if( $EVAL_ERROR ){
-        if( $EVAL_ERROR eq 'ALREADY EXISTS' ){
-            $err_msg = join(q{ }, 'Injection,',
-                            $inj_pool->pool_name,
-                            ', already exists in the database.',
-                        );
+        
+        # make an injection object
+        $inj_pool = Crispr::DB::InjectionPool->new(
+            pool_name => param('inj_name'),
+            cas9_prep => $cas9_prep,
+            cas9_conc => param('cas9_conc'),
+            date => param('date'),
+            line_injected => param('line_inj'),
+            line_raised => param('line_raised'),
+            sorted_by => undef,
+            guideRNAs => $gRNA_preps,
+        );
+        eval{
+            $inj_pool = $injection_pool_adaptor->store( $inj_pool );
+        };
+        if( $EVAL_ERROR ){
+            if( $EVAL_ERROR =~ m/ALREADY\sEXISTS/xms ){
+                $err_msg = join(q{}, 'Injection, ',
+                                $inj_pool->pool_name,
+                                ', already exists in the database.',
+                            );
+            }
+            else{
+                $err_msg = 'An unexpected error occurred. ' .
+                    'Please contact the database administrator.<br>' .
+                    $EVAL_ERROR;
+            }
         }
-    }
-    else{
-        $success_msg = join(q{ }, 'Injection,',
-                            $inj_pool->pool_name,
-                            ', was successfully added to the database.',
-                        );
-    }
-
-    my $cas9_preps;
-    my @cas9_preps;
-    if( $debug ){
-        $cas9_preps = $test_cas9_preps;
-    }
-    else{
+        else{
+            $success_msg = join(q{}, 'Injection, ',
+                                $inj_pool->pool_name,
+                                ', was successfully added to the database.',
+                            );
+        }
+        
+        if( !$inj_pool->db_id ){
+            $inj_pool = undef;
+        }
         # get all cas9_preps from the db
         $cas9_preps = $cas9_prep_adaptor->_fetch();
     }
+    
+    warn 'SUCCESS_MSG: ', $success_msg, "\n";
+    
     foreach my $prep ( @{$cas9_preps} ){
         my $name = join(q{}, $prep->cas9->type, '(', $prep->db_id, ')' );
         push @cas9_preps, { name => $name, };
     }
 
-    template 'add_injections', {
+    template 'injections', {
         cas9_preps => \@cas9_preps,
         injection => $inj_pool,
         err_msg => $err_msg,
         success_msg => $success_msg,
+        add_injection_url => uri_for('/add_injection_to_db'),
+        get_injections_url => uri_for('/get_injections'),
     };
 };
 
