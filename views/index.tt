@@ -9,28 +9,28 @@
           <div class="well well-lg">
             <h2>Targets</h2>
             <a href="[% targets_url %]" type="button" class="btn btn-primary">Find Targets</a>
-            <a href="" type="button" class="btn btn-primary">Add Targets</a>
+            <!--<a href="" type="button" class="btn btn-primary">Add Targets</a>-->
           </div>
         </div>
         <div class="col-xs-12 col-sm-6 col-md-4" id="sgrna-buttons">
           <div class="well well-lg">
             <h2>sgRNAs</h2>
             <a href="[% sgrnas_url %]" type="button" class="btn btn-primary">Find sgRNAs</a>
-            <a href="" type="button" class="btn btn-primary">Add sgRNAs</a>
+            <!--<a href="" type="button" class="btn btn-primary">Add sgRNAs</a>-->
           </div>
         </div>
         <div class="col-xs-12 col-sm-6 col-md-4" id="primers-buttons">
           <div class="well well-lg">
             <h2>Primers</h2>
             <a href="[% primers_url %]" type="button" class="btn btn-primary">Find Primers</a>
-            <a href="" type="button" class="btn btn-primary">Add Primers</a>
+            <!--<a href="" type="button" class="btn btn-primary">Add Primers</a>-->
           </div>
         </div>
         <div class="col-xs-12 col-sm-6 col-md-4" id="injections-buttons">
           <div class="well well-lg">
             <h2>Injections</h2>
             <a href="[% injections_url %]" type="button" class="btn btn-primary">Find Injections</a>
-            <a href="[% add_injections_url %]" type="button" class="btn btn-primary">Add Injections</a>
+            <a href="[% injections_url %]" type="button" class="btn btn-primary">Add Injections</a>
           </div>
         </div>
         <div class="col-xs-12 col-sm-6 col-md-4" id="miseq-buttons">
