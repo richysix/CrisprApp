@@ -21,12 +21,14 @@ $(document).ready(function(){
     $("." + failed_classes[i]).addClass( "danger" );
   }
 
-  $(".js-toggle-get-inj-form").click( function(){
-    $("#get_inj_form").toggle('fast');
+  $(".js-show-get-inj-form").click( function(){
+    $("#add_inj_form").hide('fast');
+    $("#get_inj_form").show('fast');
   } );
   
-  $(".js-toggle-get-add-form").click( function(){
-    $("#add_inj_form").toggle('fast');
+  $(".js-show-add-inj-form").click( function(){
+    $("#get_inj_form").hide('fast');
+    $("#add_inj_form").show('fast');
   } );
   
 });
