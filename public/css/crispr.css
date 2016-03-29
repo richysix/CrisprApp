@@ -16,3 +16,8 @@ footer{
   background: #ffddcc;
 }
 
+.hidden_div{
+	display:none;
+}
+
+
