@@ -238,7 +238,7 @@ get '/get_targets' => sub {
         $err_msg .= join(' - ', 'Requestor', $requestor, ) . '<br>' if $requestor;
         $err_msg .= join(' - ', 'Status', $status, ) . '<br>' if $status;
     }
-    my @targets = sort { $a->gene_id cmp $b->gene_id } @{$targets};
+    my @targets = sort { lc($a->gene_name) cmp lc($b->gene_name) } @{$targets};
 
     if( $err_msg ){
         template 'targets', {
@@ -355,6 +355,9 @@ get '/get_sgrnas' => sub {
         $err_msg .= join(' - ', 'Requestor', $requestor, ) . '<br>' if $requestor;
         $err_msg .= join(' - ', 'Status', $status, ) . '<br>' if $status;
     }
+    
+    my @crRNAs = sort
+        { lc($a->target->gene_name) cmp lc($b->target->gene_name) } @{$crRNAs};
 
     if( $err_msg ){
         template 'sgrnas', {
@@ -366,7 +369,7 @@ get '/get_sgrnas' => sub {
     else{
         template 'show_sgrnas', {
             template_name => 'sgrnas',
-            crRNAs => $crRNAs,
+            crRNAs => \@crRNAs,
             sgrna_url => uri_for('/sgrna'),
         };
     }
@@ -568,15 +571,14 @@ get '/get_miseq' => sub {
     if( $plex_from_db->{plex_name} eq param('miseq_id') ){
         $plex = $plex_from_db;
         $err_msg = undef;
-
     }
     else{
         $plex = undef;
         $err_msg = join(q{ }, "Couldn't find plex", param('miseq_id'),
             "in the database. Do you want to try again?" ) . "\n";
     }
-    template 'get_miseq', {
-        template_name => 'get_miseq',
+    template 'show_miseq', {
+        template_name => 'show_miseq',
         test_text => 'This is some different test text for a retrieved MiSeq run!',
         plex => $plex,
         err_msg => $err_msg,
@@ -658,9 +660,9 @@ get '/get_injections' => sub {
             $injections = $injection_pool_adaptor->_fetch();
         }
     }
-    warn 'ERROR MESSAGE: ' . $err_msg;
     
     if( $err_msg ){
+        warn 'ERROR MESSAGE: ' . $err_msg;
         template 'injections', {
             err_msg => $err_msg,
         };
