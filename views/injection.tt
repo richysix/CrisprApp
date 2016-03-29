@@ -40,11 +40,11 @@
           [% FOREACH guideRNA IN injection.guideRNAs %]
           <tr class="[% guideRNA.crRNA.status %]">
             <td><a href="[% sgrna_url %]/[% guideRNA.crRNA.crRNA_id %]" id="[% guideRNA.crRNA.name %]" >[% guideRNA.crRNA.name %]</a></td>
-            <td>[% guideRNA.crRNA.well.plate_name %]</td>
-            <td>[% guideRNA.crRNA.well.position %]</td>
+            <td>[% guideRNA.well.plate_name %]</td>
+            <td>[% guideRNA.well.position %]</td>
             <td>[% guideRNA.crRNA.status %]</td>
             <td>[% guideRNA.crRNA.target_gene_name %]</td>
-            <td>[% guideRNA.crRNA.requestor %]</td>
+            <td>[% guideRNA.crRNA.target.requestor %]</td>
           </tr>
           [% END %]
           </tbody>
