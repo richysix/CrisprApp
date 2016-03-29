@@ -29,8 +29,7 @@
         <div class="col-xs-12 col-sm-6 col-md-4" id="injections-buttons">
           <div class="well well-lg">
             <h2>Injections</h2>
-            <a href="[% injections_url %]" type="button" class="btn btn-primary">Find Injections</a>
-            <a href="[% injections_url %]" type="button" class="btn btn-primary">Add Injections</a>
+            <a href="[% injections_url %]" type="button" class="btn btn-primary">Injections</a>
           </div>
         </div>
         <div class="col-xs-12 col-sm-6 col-md-4" id="miseq-buttons">
@@ -39,6 +38,6 @@
             <a href="[% miseq_url %]" type="button" class="btn btn-primary">MiSeq Info</a>
           </div>
         </div>
-      </div>
-    </div>
+      </div> <!-- / row -->
+    </div> <!-- / container -->
   </div> <!-- / container -->
