@@ -68,10 +68,10 @@
 <footer>
 <div class="container">
   <div class="row">
-    <div class="col-sm-12 col-md-8 col-lg-10">
+    <div class="col-xs-12 col-sm-8">
       Powered by <a href="http://perldancer.org/">Dancer2</a> [% dancer_version %]
     </div>
-    <div class="col-sm-12 col-md-4 col-lg-2">
+    <div class="col-xs-12 col-sm-4" align="right">
       <a href="http://www.sanger.ac.uk/science/collaboration/zebrafish-mutation-project">
       <img alt="Zebrafish Mutation Project Logo" src="[% request.uri_base %]/images/zmp-logo-small.png"></img>
       </a>
