@@ -1,0 +1,16 @@
+<div class="row">
+  <div class="col-lg-6">
+	[% IF err_msg %]
+	<div class="alert alert-dismissible alert-danger">
+	  <button type="button" class="close" data-dismiss="alert" aria-label="close">
+		<span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+	  </button>
+	  <strong>Add Injections</strong><p>[% err_msg %]</p>
+	</div>
+	[% ELSIF success_msg %]
+	<div class="alert alert-success">
+	  <strong>Add Injections</strong><p>[% success_msg %]</p>
+	</div>
+	[% END %]
+  </div>
+</div>
