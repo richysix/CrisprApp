@@ -1,165 +1,21 @@
 package CrisprApp;
+use warnings;
+use strict;
+
 use Dancer2;
 use Template;
 use Data::Dumper;
+use File::Spec;
 
 use English qw( -no_match_vars );
 use Readonly;
 
-my $debug = 0;
-my ( $test_targets, $test_pair_info, $test_primer_info, $test_inj_info,
-    $test_cas9_preps, );
-if( $debug ){
-    $test_targets = [
-        {
-            target_id => 1,
-            target_name => 'test_target_1',
-            gene_name => 'test_gene_1',
-            gene_id => 'test_gene_id_1',
-            requestor => 'test_usr1',
-            ensembl_version => 'Zv9',
-            status => 'PASSED_EMBRYO_SCREENING',
-            status_changed => '2015-12-02',
-            crRNAs => [
-                {
-                    crRNA_id => 1,
-                    name => 'crRNA:1:101-123:-1',
-                    sequence => 'GGGACATAGACATATAGACGAGG',
-                    status => 'FAILED_EMBRYO_SCREENING',
-                    status_changed => '2015-12-02',
-                    target_gene_id => 'test_gene_id_1',
-                    target_gene_name => 'test_gene_1',
-                    requestor => 'test_usr1',
-                    well => {
-                        plate_name => 'CR_000026-',
-                        position => 'A01',
-                    }
-                },
-                {
-                    crRNA_id => 2,
-                    name => 'crRNA:1:121-143:1',
-                    sequence => 'GGTACGATATATATGCAACGAGG',
-                    status => 'PASSED_EMBRYO_SCREENING',
-                    status_changed => '2015-12-02',
-                    target_gene_id => 'test_gene_id_1',
-                    target_gene_name => 'test_gene_1',
-                    requestor => 'test_usr1',
-                    well => {
-                        plate_name => 'CR_000026-',
-                        position => 'B01',
-                    }
-                }
-            ]
-        },
-        {
-            target_id => 2,
-            target_name => 'test_target_2',
-            gene_name => 'test_gene_2',
-            gene_id => 'test_gene_id_2',
-            requestor => 'test_usr2',
-            ensembl_version => 'GRCz10',
-            status => 'REQUESTED',
-            status_changed => '2015-12-02',
-        },
-    ];
-
-    $test_pair_info = [
-        {
-            pair_name => '19:10678178-10679198:1',
-            primer_pair_id => 1,
-            left_primer => {
-                sequence => 'ACGATAGCATATAGACGAATAGG',
-                plate_name => 'CR_000026h',
-                well_id => 'A01',
-            },
-            right_primer => {
-                sequence => 'TGATGAGCATACTGCACGATATTAG',
-                plate_name => 'CR_000026h',
-                well_id => 'A01',
-            },
-        },
-        {
-            pair_name => '25:1-250:1',
-            primer_pair_id => 2,
-            left_primer => {
-                sequence => 'GACGATGACGATAGATGACGA',
-                plate_name => 'CR_000026h',
-                well_id => 'B01',
-            },
-            right_primer => {
-                sequence => 'TGATGAGCATACTGCACGATATTAG',
-                plate_name => 'CR_000026h',
-                well_id => 'B01',
-            },
-        },
-    ];
-
-    $test_primer_info = [
-        {
-            pair_name => '19:10678178-10679198:1',
-            primer => {
-                name => '19:10678178-10678198:1',
-                sequence => 'ACGATAGCATATAGACGAATAGG',
-                plate_name => 'CR_000026h',
-                well_id => 'A01',
-            },
-        },
-        {
-            pair_name => '19:10678178-10679198:1',
-            primer => {
-                name => '19:10679178-10679198:-1',
-                sequence => 'TGATGAGCATACTGCACGATATTAG',
-                plate_name => 'CR_000026h',
-                well_id => 'A01',
-            },
-        },
-        {
-            pair_name => '25:1-250:1',
-            primer => {
-                name => '25:1-20:1',
-                sequence => 'GACGATGACGATAGATGACGA',
-                plate_name => 'CR_000026h',
-                well_id => 'B01',
-            },
-        },
-        {
-            pair_name => '25:1-250:1',
-            primer => {
-                name => '25:230-250:-1',
-                sequence => 'TGATGAGCATACTGCACGATATTAG',
-                plate_name => 'CR_000026h',
-                well_id => 'B01',
-            },
-        },
-    ];
-
-    $test_inj_info = [
-        {
-            db_id => 1,
-            pool_name => 380,
-            date => '2015-09-23',
-            line_injected => 'H1851',
-            line_raised => 'MR3738344',
-            guideRNAs => [
-                { crRNA => $test_targets->[0]->{'crRNAs'}->[0], },
-                { crRNA => $test_targets->[0]->{'crRNAs'}->[1], },
-            ],
-        },
-    ];
-    $test_cas9_preps = [    {
-           db_id => 245,
-           cas9 => {
-               type => 'ZfnCas9n',
-               species => 's_pyogenes',
-               vector => 'pCS2',
-               name => 'pCS2-ZfnCas9n',
-           },
-           prep_type => 'rna',
-           made_by => 'crispr_test_user',
-           date => '2014-09-30',
-           notes => 'Some interesting notes',
-       },
-   ];
+my ( $test_method_obj, $mock_objects, $test_targets, $test_pair_info,
+    $test_primer_info, $test_inj_info, $test_cas9_preps, );
+if( $ENV{ PLACK_ENV } eq 'development' ){
+    use TestMethods;
+    $test_method_obj = TestMethods->new();
+    $mock_objects = _make_mock_objects( $test_method_obj, );
 }
 else{
     use Crispr;
@@ -175,9 +31,10 @@ Readonly my $crispr_db => '/nfs/users/nfs_r/rw4/config/rw4_crispr_test.conf';
 
 my ( $target_adaptor, $crRNA_adaptor, $primer_pair_adaptor, $plate_adaptor,
     $injection_pool_adaptor, $cas9_prep_adaptor, $guideRNA_adaptor, );
-if( !$debug ){
+if( $ENV{ PLACK_ENV } eq 'production' ){
     # connect to db
     my $DB_connection = Crispr::DB::DBConnection->new( $crispr_db );
+    
     # get adaptors
     $target_adaptor = $DB_connection->get_adaptor( 'target' );
     $crRNA_adaptor = $DB_connection->get_adaptor( 'crRNA' );
@@ -217,8 +74,8 @@ get '/get_targets' => sub {
     my $target_info = param('target');
     my $requestor = param('requestor');
     my $status = param('status');
-    if( $debug ){
-        $targets = $test_targets;
+    if( $ENV{ PLACK_ENV } eq 'development' ){
+        $targets = $mock_objects->{mock_targets};
     }
     else{
         if( $target_info ){
@@ -258,8 +115,8 @@ get '/target/:target_id' => sub {
     my $db_id = param('target_id');
     debug 'DB_ID: ', $db_id;
     my $target;
-    if( $debug ){
-        $target = $test_targets->[$db_id-1];
+    if( $ENV{ PLACK_ENV } eq 'development' ){
+        $target = $mock_objects->{mock_target};
     }
     else{
         $target = $target_adaptor->fetch_by_id( param('target_id') );
@@ -296,53 +153,54 @@ get '/get_sgrnas' => sub {
               );
 
     my $crRNAs;
-    if( $plate_number ){
-        if( $well_id ){
-            my $crRNA;
-            eval {
-                $crRNA = $crRNA_adaptor->fetch_by_plate_num_and_well( $plate_number, $well_id, );
-            };
-            $crRNAs = [ $crRNA ] if $crRNA;
+    if( $ENV{ PLACK_ENV } eq 'development' ){
+        $crRNAs = $mock_objects->{crRNAs};
+    }
+    else{
+        if( $plate_number ){
+            if( $well_id ){
+                my $crRNA;
+                eval {
+                    $crRNA = $crRNA_adaptor->fetch_by_plate_num_and_well( $plate_number, $well_id, );
+                };
+                $crRNAs = [ $crRNA ] if $crRNA;
+            }
+            else{
+                eval{
+                    $crRNAs = $crRNA_adaptor->fetch_by_plate_num_and_well( $plate_number, );
+                };
+            }
         }
-        else{
+        elsif( $crRNA_name ){
             eval{
-                $crRNAs = $crRNA_adaptor->fetch_by_plate_num_and_well( $plate_number, );
+                $crRNAs = $crRNA_adaptor->fetch_all_by_name( $crRNA_name, );
             };
         }
-    }
-    elsif( $crRNA_name ){
-        eval{
-            $crRNAs = $crRNA_adaptor->fetch_all_by_name( $crRNA_name, );
-        };
-    }
-    elsif( $target_info ){
-        my @crRNAs;
-        my $targets = $target_adaptor->fetch_all_by_target_name_gene_id_gene_name( $target_info );
-        foreach my $target ( @{$targets} ){
-            my $crRNAs;
-            eval{
-                $crRNAs = $crRNA_adaptor->fetch_all_by_target( $target );
-            };
-            push @crRNAs, @{$crRNAs};
+        elsif( $target_info ){
+            my @crRNAs;
+            my $targets = $target_adaptor->fetch_all_by_target_name_gene_id_gene_name( $target_info );
+            foreach my $target ( @{$targets} ){
+                my $crRNAs;
+                eval{
+                    $crRNAs = $crRNA_adaptor->fetch_all_by_target( $target );
+                };
+                push @crRNAs, @{$crRNAs};
+            }
+            $crRNAs = \@crRNAs;
         }
-        $crRNAs = \@crRNAs;
-    }
-    elsif( $requestor ){
-        my $targets = $target_adaptor->fetch_all_by_requestor( $requestor );
-        $crRNAs = $crRNA_adaptor->fetch_all_by_targets( $targets );
-    }
-    elsif( $status ){
-        $crRNAs = $crRNA_adaptor->fetch_all_by_status( $status );
-    }
-    # get targets for each crispr
-    foreach my $crRNA ( @{$crRNAs} ){
-        if( defined $crRNA && !defined $crRNA->target ){
-            $crRNA->target( $target_adaptor->fetch_by_crRNA_id( $crRNA->crRNA_id ) );
+        elsif( $requestor ){
+            my $targets = $target_adaptor->fetch_all_by_requestor( $requestor );
+            $crRNAs = $crRNA_adaptor->fetch_all_by_targets( $targets );
         }
-    }
-
-    if( $debug ){
-        $crRNAs = $test_targets->[0]->{crRNAs};
+        elsif( $status ){
+            $crRNAs = $crRNA_adaptor->fetch_all_by_status( $status );
+        }
+        # get targets for each crispr
+        foreach my $crRNA ( @{$crRNAs} ){
+            if( defined $crRNA && !defined $crRNA->target ){
+                $crRNA->target( $target_adaptor->fetch_by_crRNA_id( $crRNA->crRNA_id ) );
+            }
+        }
     }
 
     my $err_msg;
@@ -379,11 +237,13 @@ get '/sgrna/:crRNA_id' => sub {
     my $db_id = param('crRNA_id');
     debug 'DB_ID: ', $db_id;
     my $crRNA;
-    my $primer_info = [];
-    my $primer_msg;
-    if( $debug ){
-        $crRNA = $test_targets->[0]->{crRNAs}->[$db_id-1];
-        $primer_info = $test_primer_info;
+    my $primer_pairs = [];
+    my $primer_msg = '';
+    if( $ENV{ PLACK_ENV } eq 'development' ){
+        $crRNA = $mock_objects->{crRNAs}->[$db_id-1];
+        if( $db_id == 1 ){
+            $primer_pairs = [ $mock_objects->{mock_primer_pair} ];
+        }
     }
     else{
         $crRNA = $crRNA_adaptor->fetch_by_id( param('crRNA_id') );
@@ -392,39 +252,40 @@ get '/sgrna/:crRNA_id' => sub {
         my $primer_pairs = $primer_pair_adaptor->fetch_all_by_crRNA_id( param('crRNA_id') );
 
         my %plate_for;
-        if( scalar @{$primer_pairs} == 0 ){
-            $primer_msg = "No Primers!";
-        }
-        else{
-            foreach my $primer_pair ( @{$primer_pairs} ){
-                my $info = {
-                    pair_name => $primer_pair->pair_name,
-                };
-                foreach my $primer ( $primer_pair->left_primer, $primer_pair->right_primer ){
-                    my $plate;
-                    if( !exists $plate_for{ $primer->plate_id } ){
-                        $plate = $plate_adaptor->fetch_empty_plate_by_id( $primer->plate_id );
-                        $plate_for{ $primer->plate_id } = $plate;
-                    }
-                    else{
-                        $plate = $plate_for{ $primer->plate_id };
-                    }
-                    $info->{'primer'} = {
-                            name => $primer->name,
-                            sequence => $primer->sequence,
-                            plate_name => $plate->plate_name,
-                            well_id => $primer->well_id,
-                        };
-                }
-
-                push @{$primer_info}, $info;
-            }
-        }
+        #else{
+        #    foreach my $primer_pair ( @{$primer_pairs} ){
+        #        my $info = {
+        #            pair_name => $primer_pair->pair_name,
+        #        };
+        #        foreach my $primer ( $primer_pair->left_primer, $primer_pair->right_primer ){
+        #            my $plate;
+        #            if( !exists $plate_for{ $primer->plate_id } ){
+        #                $plate = $plate_adaptor->fetch_empty_plate_by_id( $primer->plate_id );
+        #                $plate_for{ $primer->plate_id } = $plate;
+        #            }
+        #            else{
+        #                $plate = $plate_for{ $primer->plate_id };
+        #            }
+        #            $info->{'primer'} = {
+        #                    name => $primer->name,
+        #                    sequence => $primer->sequence,
+        #                    plate_name => $plate->plate_name,
+        #                    well_id => $primer->well_id,
+        #                };
+        #        }
+        #
+        #        push @{$primer_info}, $info;
+        #    }
+        #}
     }
+    if( scalar @{$primer_pairs} == 0 ){
+        $primer_msg = "There are currently no screening primers in the database for this guide RNA.";
+    }
+    warn 'PRIMER MSG: ', $primer_msg, "\n";
     template 'sgrna', {
         crRNA => $crRNA,
         primer_msg => $primer_msg,
-        primer_info => $primer_info,
+        primer_pairs => $primer_pairs,
     };
 };
 
@@ -448,8 +309,8 @@ get '/get_primer_pairs' => sub {
     my $primer_pairs = [];
     my $err_msg;
     my $crRNAs;
-    if( $debug ){
-        $pair_info = $test_pair_info;
+    if( $ENV{ PLACK_ENV } eq 'development' ){
+        $primer_pairs = [ $mock_objects->{mock_primer_pair} ];
     }
     else{
         if( $crRNA_id ){
@@ -588,8 +449,8 @@ get '/get_miseq' => sub {
 sub get_cas9_preps {
     my $cas9_preps;
     my @cas9_preps;
-    if( $debug ){
-        $cas9_preps = $test_cas9_preps;
+    if( $ENV{ PLACK_ENV } eq 'development' ){
+        $cas9_preps = [ $mock_objects->{mock_cas9_prep} ];;
         foreach my $prep ( @{$cas9_preps} ){
             my $name = join(q{}, $prep->{cas9}->{type}, '(', $prep->{db_id}, ')' );
             push @cas9_preps, { name => $name, };
@@ -622,8 +483,8 @@ get '/get_injections' => sub {
 
     my $injections;
     my $err_msg;
-    if( $debug ){
-        $injections = $test_inj_info;
+    if( $ENV{ PLACK_ENV } eq 'development' ){
+        $injections = [ $mock_objects->{mock_injection_pool} ];
     }
     else{
         if( param('inj_name') ){
@@ -686,8 +547,8 @@ get '/injection/:db_id' => sub {
     my $db_id = param('db_id');
 
     my $injection;
-    if( $debug ){
-        $injection = $test_inj_info->[0];
+    if( $ENV{ PLACK_ENV } eq 'development' ){
+        $injection = $mock_objects->{mock_injection_pool};
     }
     else{
         $injection = $injection_pool_adaptor->fetch_by_id( $db_id );
@@ -706,7 +567,7 @@ post '/add_injection_to_db' => sub {
     my $cas9_preps;
     my @cas9_preps;
     my $inj_pool;
-    if( $debug ){
+    if( $ENV{ PLACK_ENV } eq 'development' ){
         $cas9_prep = $test_cas9_preps->[0];
         #$cas9_preps = $test_cas9_preps;
         $success_msg = 'SUCCESS';
@@ -796,5 +657,117 @@ post '/add_injection_to_db' => sub {
         get_injections_url => uri_for('/get_injections'),
     };
 };
+
+sub _make_mock_objects {
+    my ( $test_method_obj, ) = @_;
+    my $mock_objects = { add_to_db => 0 };
+    
+    my ( $mock_target, $mock_target_id, ) =
+        $test_method_obj->create_mock_object_and_add_to_db( 'target', $mock_objects, );
+    my ( $mock_plate, $mock_plate_id, ) =
+        $test_method_obj->create_mock_object_and_add_to_db( 'plate', $mock_objects, );
+    $mock_objects->{mock_target} = $mock_target;
+    $mock_objects->{mock_targets} = [ $mock_target, ];
+    $mock_objects->{crRNA_num} = 1;
+    my ( $mock_crRNA_1, $mock_crRNA_1_id, ) =
+        $test_method_obj->create_mock_object_and_add_to_db( 'crRNA', $mock_objects, );
+    $mock_objects->{crRNA_num} = 2;
+    my ( $mock_crRNA_2, $mock_crRNA_2_id, ) =
+        $test_method_obj->create_mock_object_and_add_to_db( 'crRNA', $mock_objects, );
+    # add target to crisprs
+    $mock_crRNA_1->mock('target', sub { return $mock_target; } );
+    $mock_crRNA_2->mock('target', sub { return $mock_target; } );
+    $mock_objects->{crRNAs} = [ $mock_crRNA_1, $mock_crRNA_2 ];
+    
+    # add crispr to target
+    $mock_target->mock('crRNAs', sub{ return [ $mock_crRNA_1, $mock_crRNA_2 ] } );
+    
+    # make mock well object and add to crispr
+    $mock_objects->{mock_plate} = $mock_plate;
+    my ( $mock_well_1, $mock_well_1_id, ) = $test_method_obj->create_mock_object_and_add_to_db( 'well', $mock_objects, );
+    my ( $mock_well_2, $mock_well_2_id, ) = $test_method_obj->create_mock_object_and_add_to_db( 'well', $mock_objects, );
+    $mock_objects->{mock_well_1} = $mock_well_1;
+    $mock_objects->{mock_well_2} = $mock_well_2;
+    $mock_well_2->mock('position', sub { return 'A02'; } );
+
+    # add well to crisprs
+    $mock_crRNA_1->mock('well', sub { return $mock_well_1; } );
+    $mock_crRNA_2->mock('well', sub { return $mock_well_2; } );
+    
+    # make mock primer and primer pair objects
+    my $mock_left_primer = Test::MockObject->new();
+    my $l_p_id = 1;
+    $mock_left_primer->mock( 'sequence', sub { return 'CGACAGTAGACAGTTAGACGAG' } );
+    $mock_left_primer->mock( 'seq_region', sub { return '5' } );
+    $mock_left_primer->mock( 'seq_region_start', sub { return 101 } );
+    $mock_left_primer->mock( 'seq_region_end', sub { return 124 } );
+    $mock_left_primer->mock( 'seq_region_strand', sub { return '1' } );
+    $mock_left_primer->mock( 'tail', sub { return undef } );
+    $mock_left_primer->set_isa('Crispr::Primer');
+    $mock_left_primer->mock('primer_id', sub { my @args = @_; if( $_[1]){ return $_[1] }else{ return $l_p_id} } );
+    $mock_left_primer->mock( 'primer_name', sub { return '5:101-124:1' } );
+    $mock_left_primer->mock( 'well_id', sub { return 'A01' } );
+    $mock_left_primer->mock( 'plate_name', sub { return 'CR_000001h' } );
+    
+    my $mock_right_primer = Test::MockObject->new();
+    my $r_p_id = 2;
+    $mock_right_primer->mock( 'sequence', sub { return 'GATAGATACGATAGATGGGAC' } );
+    $mock_right_primer->mock( 'seq_region', sub { return '5' } );
+    $mock_right_primer->mock( 'seq_region_start', sub { return 600 } );
+    $mock_right_primer->mock( 'seq_region_end', sub { return 623 } );
+    $mock_right_primer->mock( 'seq_region_strand', sub { return '-1' } );
+    $mock_right_primer->mock( 'tail', sub { return undef } );
+    $mock_right_primer->set_isa('Crispr::Primer');
+    $mock_right_primer->mock('primer_id', sub { my @args = @_; if( $_[1]){ return $_[1] }else{ return $r_p_id} } );
+    $mock_right_primer->mock( 'primer_name', sub { return '5:600-623:-1' } );
+    $mock_right_primer->mock( 'well_id', sub { return 'A01' } );
+    $mock_right_primer->mock( 'plate_name', sub { return 'CR_000001h' } );
+        
+    my $mock_primer_pair = Test::MockObject->new();
+    my $pair_id = 1;
+    $mock_primer_pair->mock( 'type', sub{ return 'ext' } );
+    $mock_primer_pair->mock( 'left_primer', sub{ return $mock_left_primer } );
+    $mock_primer_pair->mock( 'right_primer', sub{ return $mock_right_primer } );
+    $mock_primer_pair->mock( 'seq_region', sub{ return $mock_left_primer->seq_region } );
+    $mock_primer_pair->mock( 'seq_region_start', sub{ return $mock_left_primer->seq_region_start } );
+    $mock_primer_pair->mock( 'seq_region_end', sub{ return $mock_right_primer->seq_region_end } );
+    $mock_primer_pair->mock( 'seq_region_strand', sub{ return 1 } );
+    $mock_primer_pair->mock( 'product_size', sub{ return 523 } );
+    $mock_primer_pair->set_isa('Crispr::PrimerPair');
+    $mock_primer_pair->mock('primer_pair_id', sub { my @args = @_; if($_[1]){ return $_[1] }else{ return $pair_id} } );
+    $mock_primer_pair->mock( 'pair_name', sub{ return '5:101-623:1'; } );
+    
+    $mock_objects->{mock_primer_pair} = $mock_primer_pair;
+
+    # create mock injection
+    # needs mock cas9, cas9_prep and well
+    my ( $mock_cas9, $mock_cas9_id, ) =
+        $test_method_obj->create_mock_object_and_add_to_db( 'cas9', $mock_objects, );
+    $mock_objects->{mock_cas9_object} = $mock_cas9;
+    my ( $mock_cas9_prep, $mock_cas9_prep_id, ) =
+        $test_method_obj->create_mock_object_and_add_to_db( 'cas9_prep', $mock_objects, );
+
+    $mock_objects->{mock_well} = $mock_well_1;
+    $mock_objects->{mock_crRNA} = $mock_crRNA_1;
+    $mock_objects->{gRNA_num} = 1;
+    my ( $mock_gRNA_1, $mock_gRNA_1_id, ) =
+        $test_method_obj->create_mock_object_and_add_to_db( 'gRNA', $mock_objects, );
+    $mock_objects->{mock_well} = $mock_well_2;
+    $mock_objects->{mock_crRNA} = $mock_crRNA_2;
+    $mock_objects->{gRNA_num} = 2;
+    my ( $mock_gRNA_2, $mock_gRNA_2_id, ) =
+        $test_method_obj->create_mock_object_and_add_to_db( 'gRNA', $mock_objects, );
+    $mock_objects->{mock_cas9_prep} = $mock_cas9_prep;
+    $mock_objects->{mock_gRNA_1} = $mock_gRNA_1;
+    $mock_objects->{mock_gRNA_2} = $mock_gRNA_2;
+    my ( $mock_injection_pool, $mock_injection_pool_id, ) =
+        $test_method_obj->create_mock_object_and_add_to_db( 'injection_pool', $mock_objects, );
+    $mock_objects->{mock_injection_pool} = $mock_injection_pool;
+    
+    warn Dumper( $mock_objects, );
+    
+    
+    return $mock_objects;
+}
 
 1;
