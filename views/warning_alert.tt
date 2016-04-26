@@ -1,0 +1,6 @@
+<div class="alert alert-dismissible alert-warning">
+  <button type="button" class="close" data-dismiss="alert" aria-label="close">
+	<span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+  </button>
+  <strong>[% alert_title %]</strong><p>[% alert_msg %]</p>
+</div>
