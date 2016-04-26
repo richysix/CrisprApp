@@ -27,15 +27,12 @@
     </div><!-- /row -->
     <div class="row">
       <div class="col-xs-12 col-md-12">
-        [% IF primers_msg %]
-        <div class="alert alert-dismissible alert-danger">
-          <button type="button" class="close" data-dismiss="alert" aria-label="close">
-            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-          </button>
-          <p>[% primer_msg %]</p>
-        </div>
-        [% END %]
         <h2>Primers</h2>
+        [% IF primer_msg %]
+          [% alert_title = 'Primer search' %]
+          [% alert_msg = primer_msg %]
+          [% INCLUDE warning_alert.tt %]
+        [% END %]
         <div class="well well-primer">
           <table class="table table-striped" id="sgrna-primer-table">
               <thead>
@@ -48,13 +45,20 @@
                 </tr>
               </thead>
               <tbody>
-              [% FOREACH primer IN primer_info %]
+              [% FOREACH pair IN primer_pairs %]
               <tr>
-                <td>[% primer.pair_name %]</td>
-                <td>[% primer.primer.plate_name %]</td>
-                <td>[% primer.primer.well_id %]</td>
-                <td>[% primer.primer.name %]</td>
-                <td>[% primer.primer.sequence %]</td>
+                <td>[% pair.pair_name %]</td>
+                <td>[% pair.left_primer.plate_name %]</td>
+                <td>[% pair.left_primer.well_id %]</td>
+                <td>[% pair.left_primer.primer_name %]</td>
+                <td>[% pair.left_primer.sequence %]</td>
+              </tr>
+              <tr>
+                <td>[% pair.pair_name %]</td>
+                <td>[% pair.right_primer.plate_name %]</td>
+                <td>[% pair.right_primer.well_id %]</td>
+                <td>[% pair.right_primer.primer_name %]</td>
+                <td>[% pair.right_primer.sequence %]</td>
               </tr>
               [% END %]
               </tbody>
