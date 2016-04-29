@@ -21,7 +21,7 @@
           [% FOREACH crRNA IN crRNAs %]
           <tr class="[% crRNA.status %]">
             <td><a href="[% sgrna_url %]/[% crRNA.crRNA_id %]" id="[% crRNA.name %]" >[% crRNA.name %]</a></td>
-            <td>[% crRNA.well.plate.plate_name %]</td>
+            <td>[% crRNA.well.plate_name %]</td>
             <td>[% crRNA.well.position %]</td>
             <td>[% crRNA.status %]</td>
             <td>[% crRNA.status_changed %]</td>
