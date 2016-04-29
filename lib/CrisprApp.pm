@@ -27,11 +27,16 @@ else{
 
 our $VERSION = '0.1';
 
-Readonly my $crispr_db => '/nfs/users/nfs_r/rw4/config/rw4_crispr_test.conf';
+Readonly my $crispr_db => defined $ENV{ DB_CONFIG } ?
+        $ENV{ DB_CONFIG } :
+        '/nfs/users/nfs_r/rw4/config/rw4_crispr_test.conf';
+
+warn $crispr_db, "\n";
 
 my ( $target_adaptor, $crRNA_adaptor, $primer_pair_adaptor, $plate_adaptor,
     $injection_pool_adaptor, $cas9_prep_adaptor, $guideRNA_adaptor, );
 if( $ENV{ PLACK_ENV } eq 'production' ){
+    warn 'PRODUCTION';
     # connect to db
     my $DB_connection = Crispr::DB::DBConnection->new( $crispr_db );
     
@@ -217,6 +222,8 @@ get '/get_sgrnas' => sub {
     my @crRNAs = sort
         { lc($a->target->gene_name) cmp lc($b->target->gene_name) } @{$crRNAs};
 
+    warn Dumper( @crRNAs );
+    
     if( $err_msg ){
         template 'sgrnas', {
             template_name => 'sgrnas',
