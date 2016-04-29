@@ -9,11 +9,12 @@ use File::Spec;
 
 use English qw( -no_match_vars );
 use Readonly;
+use if $ENV{ PLACK_ENV } eq 'development', 'TestMethods';
 
 my ( $test_method_obj, $mock_objects, $test_targets, $test_pair_info,
     $test_primer_info, $test_inj_info, $test_cas9_preps, );
 if( $ENV{ PLACK_ENV } eq 'development' ){
-    use TestMethods;
+    warn "PRODUCTION\n";
     $test_method_obj = TestMethods->new();
     $mock_objects = _make_mock_objects( $test_method_obj, );
 }
@@ -254,44 +255,21 @@ get '/sgrna/:crRNA_id' => sub {
     }
     else{
         $crRNA = $crRNA_adaptor->fetch_by_id( param('crRNA_id') );
-
+        
         # retrieve primer pairs for crispr
-        my $primer_pairs = $primer_pair_adaptor->fetch_all_by_crRNA_id( param('crRNA_id') );
-
-        my %plate_for;
-        #else{
-        #    foreach my $primer_pair ( @{$primer_pairs} ){
-        #        my $info = {
-        #            pair_name => $primer_pair->pair_name,
-        #        };
-        #        foreach my $primer ( $primer_pair->left_primer, $primer_pair->right_primer ){
-        #            my $plate;
-        #            if( !exists $plate_for{ $primer->plate_id } ){
-        #                $plate = $plate_adaptor->fetch_empty_plate_by_id( $primer->plate_id );
-        #                $plate_for{ $primer->plate_id } = $plate;
-        #            }
-        #            else{
-        #                $plate = $plate_for{ $primer->plate_id };
-        #            }
-        #            $info->{'primer'} = {
-        #                    name => $primer->name,
-        #                    sequence => $primer->sequence,
-        #                    plate_name => $plate->plate_name,
-        #                    well_id => $primer->well_id,
-        #                };
-        #        }
-        #
-        #        push @{$primer_info}, $info;
-        #    }
-        #}
+        $primer_pairs = $primer_pair_adaptor->fetch_all_by_crRNA_id( param('crRNA_id') );
+        # sort by type
+        @{$primer_pairs} = sort { $a->type cmp $b->type } @{$primer_pairs}
     }
-    if( scalar @{$primer_pairs} == 0 ){
+    my $primers = scalar @{$primer_pairs};
+    if( $primers == 0 ){
         $primer_msg = "There are currently no screening primers in the database for this guide RNA.";
     }
-    warn 'PRIMER MSG: ', $primer_msg, "\n";
+    
     template 'sgrna', {
         crRNA => $crRNA,
         primer_msg => $primer_msg,
+        primers => $primers,
         primer_pairs => $primer_pairs,
     };
 };
