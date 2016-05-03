@@ -35,7 +35,8 @@ Readonly my $crispr_db => defined $ENV{ DB_CONFIG } ?
 warn $crispr_db, "\n";
 
 my ( $target_adaptor, $crRNA_adaptor, $primer_pair_adaptor, $plate_adaptor,
-    $injection_pool_adaptor, $cas9_prep_adaptor, $guideRNA_adaptor, );
+    $injection_pool_adaptor, $cas9_prep_adaptor, $guideRNA_adaptor,
+    $plex_adaptor, );
 if( $ENV{ PLACK_ENV } eq 'production' ){
     warn 'PRODUCTION';
     # connect to db
@@ -49,6 +50,7 @@ if( $ENV{ PLACK_ENV } eq 'production' ){
     $injection_pool_adaptor = $DB_connection->get_adaptor( 'injection_pool' );
     $cas9_prep_adaptor = $DB_connection->get_adaptor( 'cas9_prep' );
     $guideRNA_adaptor = $DB_connection->get_adaptor( 'guidernaprep' );
+    $plex_adaptor = $DB_connection->get_adaptor( 'plex' );
 }
 
 hook before_template => sub {
@@ -222,8 +224,6 @@ get '/get_sgrnas' => sub {
     
     my @crRNAs = sort
         { lc($a->target->gene_name) cmp lc($b->target->gene_name) } @{$crRNAs};
-
-    warn Dumper( @crRNAs );
     
     if( $err_msg ){
         template 'sgrnas', {
@@ -259,7 +259,7 @@ get '/sgrna/:crRNA_id' => sub {
         # retrieve primer pairs for crispr
         $primer_pairs = $primer_pair_adaptor->fetch_all_by_crRNA_id( param('crRNA_id') );
         # sort by type
-        @{$primer_pairs} = sort { $a->type cmp $b->type } @{$primer_pairs}
+        @{$primer_pairs} = sort { $a->type cmp $b->type } @{$primer_pairs};
     }
     my $primers = scalar @{$primer_pairs};
     if( $primers == 0 ){
@@ -292,7 +292,6 @@ get '/get_primer_pairs' => sub {
 
     my $pair_info = [];
     my $primer_pairs = [];
-    my $err_msg;
     my $crRNAs;
     if( $ENV{ PLACK_ENV } eq 'development' ){
         $primer_pairs = [ $mock_objects->{mock_primer_pair} ];
@@ -302,12 +301,14 @@ get '/get_primer_pairs' => sub {
             $primer_pairs = $primer_pair_adaptor->fetch_all_by_crRNA_id( $crRNA_id );
         }
         if( $plate_number ){
-            my $plate_name = sprintf('CR_%06df', $plate_number, );
-            if( $well_id ){
-                $primer_pairs = $primer_pair_adaptor->fetch_by_plate_name_and_well( $plate_name, $well_id );
-            }
-            else{
-                $primer_pairs = $primer_pair_adaptor->fetch_by_plate_name_and_well( $plate_name );
+            foreach my $plate_suffix ( qw{ f g h } ){
+                my $plate_name = sprintf('CR_%06d%s', $plate_number, $plate_suffix, );
+                if( $well_id ){
+                    push @{$primer_pairs}, @{ $primer_pair_adaptor->fetch_by_plate_name_and_well( $plate_name, $well_id ) };
+                }
+                else{
+                    push @{$primer_pairs}, @{ $primer_pair_adaptor->fetch_by_plate_name_and_well( $plate_name, $well_id ) };
+                }
             }
         }
         if( $crRNA_name ){
@@ -331,63 +332,30 @@ get '/get_primer_pairs' => sub {
         if( $crRNAs ){
             $primer_pairs = $primer_pair_adaptor->fetch_all_by_crRNAs( $crRNAs );
         }
-
-        my %plate_for;
-        if( scalar @{$primer_pairs} == 0 ){
-            $err_msg = "Couldn't find any matches for:<br>";
-            $err_msg .= join(' - ', 'Plate', $plate_number, ) . '<br>' if $plate_number;
-            $err_msg .= join(' - ', 'Well', $well_id, ) . '<br>' if $well_id;
-            $err_msg .= join(' - ', 'crRNA Name', $crRNA_name, ) . '<br>' if $crRNA_name;
-            $err_msg .= join(' - ', 'Crispr Plate', $crispr_plate, ) . '<br>' if $crispr_plate;
-            $err_msg .= join(' - ', 'Crispr Well', $crispr_well, ) . '<br>' if $crispr_well;
-        }
-        else{
-            foreach my $primer_pair ( @{$primer_pairs} ){
-                my $info = {
-                    pair_name => $primer_pair->pair_name,
-                    primer_pair_id => $primer_pair->primer_pair_id,
-                };
-                my $plate;
-                if( !exists $plate_for{ $primer_pair->left_primer->plate_id } ){
-                    $plate = $plate_adaptor->fetch_empty_plate_by_id( $primer_pair->left_primer->plate_id );
-                    $plate_for{ $primer_pair->left_primer->plate_id } = $plate;
-                }
-                else{
-                    $plate = $plate_for{ $primer_pair->left_primer->plate_id };
-                }
-                $info->{'left_primer'} = {
-                        sequence => $primer_pair->left_primer->sequence,
-                        plate_name => $plate->plate_name,
-                        well_id => $primer_pair->left_primer->well_id,
-                    };
-
-                if( !exists $plate_for{ $primer_pair->right_primer->plate_id } ){
-                    $plate = $plate_adaptor->fetch_empty_plate_by_id( $primer_pair->right_primer->plate_id );
-                    $plate_for{ $primer_pair->right_primer->plate_id } = $plate;
-                }
-                else{
-                    $plate = $plate_for{ $primer_pair->right_primer->plate_id };
-                }
-                $info->{'right_primer'} = {
-                        sequence => $primer_pair->right_primer->sequence,
-                        plate_name => $plate->plate_name,
-                        well_id => $primer_pair->right_primer->well_id,
-                    };
-
-                push @{$pair_info}, $info;
-            }
-        }
     }
-
-    if( $err_msg ){
+    
+    @{$primer_pairs} = sort {
+        $a->left_primer->well->position cmp $b->left_primer->well->position ||
+        $a->left_primer->well->plate->plate_name cmp $b->left_primer->well->plate->plate_name
+            } @{$primer_pairs};
+    
+    my $primers = scalar @{$primer_pairs};
+    if( $primers == 0 ){
+        my $err_msg = "Couldn't find any matches for:<br>";
+        $err_msg .= join(' - ', 'Plate', $plate_number, ) . '<br>' if $plate_number;
+        $err_msg .= join(' - ', 'Well', $well_id, ) . '<br>' if $well_id;
+        $err_msg .= join(' - ', 'crRNA Name', $crRNA_name, ) . '<br>' if $crRNA_name;
+        $err_msg .= join(' - ', 'Crispr Plate', $crispr_plate, ) . '<br>' if $crispr_plate;
+        $err_msg .= join(' - ', 'Crispr Well', $crispr_well, ) . '<br>' if $crispr_well;
         template 'primer_pairs', {
+            get_primers_url => uri_for('/get_primer_pairs'),
             err_msg => $err_msg,
-            target_url => uri_for('/get_primer_pairs'),
         };
     }
     else{
         template 'show_primer_pairs', {
-            pair_info => $pair_info,
+            primers => $primers,
+            primer_pairs => $primer_pairs,
         };
     }
 };
@@ -401,31 +369,29 @@ get '/miseq' => sub {
 };
 
 get '/get_miseq' => sub {
-    debug "MiSeq ID: ", param('miseq_id');
-    # # my $plex;
-    # eval{
-    #     $plex = $plex_adaptor->fetch_by_name( param('miseq_id') );
-    # }
-    my $plex_from_db = {
-        db_id => 1,
-        plex_name => 'miseq29',
-        run_id => 18627,
-        analysis_started => '2015-11-26',
-        analysis_finished => undef,
-    };
+    debug "MiSeq ID: ", param('miseq_run_id');
+    
     my ($plex, $err_msg );
-    if( $plex_from_db->{plex_name} eq param('miseq_id') ){
-        $plex = $plex_from_db;
-        $err_msg = undef;
+    if( $ENV{ PLACK_ENV } eq 'development' ){
+        $plex = $mock_objects->{mock_plex};
     }
     else{
-        $plex = undef;
-        $err_msg = join(q{ }, "Couldn't find plex", param('miseq_id'),
-            "in the database. Do you want to try again?" ) . "\n";
+        # if the supplied value is all digits, assume it's a run id
+        if( param('miseq_run_id') =~ m/\A \d+ \z/xms ){
+            $plex = $plex_adaptor->fetch_by_run_id( param('miseq_run_id') );
+        
+        }
+        # else assume it's a plex name
+        else{
+            $plex = $plex_adaptor->fetch_by_name( param('miseq_run_id') );
+        }
     }
-    template 'show_miseq', {
-        template_name => 'show_miseq',
-        test_text => 'This is some different test text for a retrieved MiSeq run!',
+    if( !$plex ){
+        $err_msg = join(q{ }, "Couldn't find plex", param('miseq_run_id'),
+            "in the database." ) . "\n";
+    }
+    template 'miseq', {
+        template_name => 'miseq',
         plex => $plex,
         err_msg => $err_msg,
     };
@@ -748,6 +714,11 @@ sub _make_mock_objects {
     my ( $mock_injection_pool, $mock_injection_pool_id, ) =
         $test_method_obj->create_mock_object_and_add_to_db( 'injection_pool', $mock_objects, );
     $mock_objects->{mock_injection_pool} = $mock_injection_pool;
+    
+    # create mock plex object
+    my ( $mock_plex, $mock_plex_id, ) =
+        $test_method_obj->create_mock_object_and_add_to_db( 'plex', $mock_objects, );
+    $mock_objects->{mock_plex} = $mock_plex;
     
     warn Dumper( $mock_objects, );
     
