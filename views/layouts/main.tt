@@ -50,7 +50,7 @@
           <li id="sgrnas-list-item"><a href="[% sgrnas_url %]" id="sgrnas-link" >sgRNAs</a></li>
           <li id="primers-list-item"><a href="[% primers_url %]" id="primers-link" >Primers</a></li>
           <li id="injections-list-item"><a href="[% injections_url %]" id="injections-link" >Injections</a></li>
-          <!-- <li id="miseq-list-item"><a href="[% miseq_url %]" id="miseq-link" >MiSeq</a></li> -->
+          <li id="miseq-list-item"><a href="[% miseq_url %]" id="miseq-link" >MiSeq</a></li> 
         </ul>
       </div><!-- / un-collapsed navbar-->
 
