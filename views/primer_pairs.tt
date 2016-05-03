@@ -4,18 +4,10 @@
     <h1 id="title">Crispr/Cas9 Primers</h1>
   </div>
   <div id="content"  class="container-fluid"  role="main">
-    <div class="row">
-      <div class="col-lg-6">
-        [% IF err_msg %]
-        <div class="alert alert-dismissible alert-danger">
-          <button type="button" class="close" data-dismiss="alert" aria-label="close">
-            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-          </button>
-          <strong>Retrieve Primers</strong><p>[% err_msg %]</p>
-        </div>
-        [% END %]
-      </div>
-    </div>
+    [% alert_title = 'Primer Search' %]
+    [% IF err_msg or success_msg %]
+      [% INCLUDE alert.tt %]
+    [% END %]
     <div class="row">
       <div class="col-lg-6">
         <form class="form-horizontal" action="[% get_primers_url %]" method="get">

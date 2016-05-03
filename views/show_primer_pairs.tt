@@ -4,37 +4,38 @@
     <h1 id="title">Crispr/Cas9 Primers</h1>
   </div>
   <div id="content"  class="container-fluid"  role="main">
-    <p> [% test_text %] </p>
     <div class="row">
       <table class="table table-striped" id="primer-table">
           <caption>Primers</caption>
           <thead>
             <tr>
               <th colspan="1" scope='colgroup'></th>
-              <th colspan="3" scope='colgroup'>Left Primer</th>
-              <th colspan="3" scope='colgroup'>Right Primer</th>
+              <th colspan="1" scope='colgroup'></th>
+              <th colspan="1" scope='colgroup'></th>
+              <th colspan="2" scope='colgroup'>Left Primer</th>
+              <th colspan="2" scope='colgroup'>Right Primer</th>
             </tr>
             <tr>
                 <th scope='col'>Pair Name</th>
+                <th scope='col'>Type</th>
+                <th scope='col'>Product Size</th>
                 <th scope='col'>Plate</th>
                 <th scope='col'>Well</th>
-                <th scope='col'>Sequence</th>
                 <th scope='col'>Plate</th>
                 <th scope='col'>Well</th>
-                <th scope='col'>Sequence</th>
             </tr>
           </thead>
           <tbody>
-          [% FOREACH pair IN pair_info %]
+          [% FOREACH pair IN primer_pairs %]
           <tr>
             <!-- <td><a href="[% primer_pair_url %]/[% pair.primer_pair_id %]" id="[% pair.pair_name %]" >[% pair.pair_name %]</a></td> -->
             <td>[% pair.pair_name %]</td>
-            <td>[% pair.left_primer.plate_name %]</td>
-            <td>[% pair.left_primer.well_id %]</td>
-            <td>[% pair.left_primer.sequence %]</td>
-            <td>[% pair.right_primer.plate_name %]</td>
-            <td>[% pair.right_primer.well_id %]</td>
-            <td>[% pair.right_primer.sequence %]</td>
+            <td>[% pair.type %]</td>
+            <td>[% pair.product_size %]</td>
+            <td>[% pair.left_primer.well.plate_name %]</td>
+            <td>[% pair.left_primer.well.position %]</td>
+            <td>[% pair.right_primer.well.plate_name %]</td>
+            <td>[% pair.right_primer.well.position %]</td>
           </tr>
           [% END %]
           </tbody>
