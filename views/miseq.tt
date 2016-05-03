@@ -3,8 +3,11 @@
     <div class="page-header">
       <h1 id="title">MiSeq Analysis</h1>
     </div>
-    <div id="content"  class="container-fluid"  role="main">
-      <p>[% test_text %]</p>
+    [% alert_title = 'MiSeq Search' %]
+    [% IF err_msg or success_msg %]
+      [% INCLUDE alert.tt %]
+    [% END %]
+    <div id="get-miseq-form"  class="container-fluid"  role="main">
       <div class="row">
         <form class="form-horizontal col-lg-6" action="[% get_miseq_url %]" method="get">
           <fieldset>
@@ -13,10 +16,6 @@
               <label for="inputMiSeqID" class="col-lg-3 control-label">MiSeq/Run ID</label>
               <div class="col-lg-9" >
                 <input class="form-control" id="inputMiSeqID" placeholder="miseq29 18267" type="text" name="miseq_run_id">
-              </div>
-            </div>
-            <div class="form-group">
-              <div class="col-lg-offset-3">
                 <button type="submit" class="btn btn-primary">Get MiSeq</button>
               </div>
             </div>
@@ -29,11 +28,16 @@
               <label for="inputRunID" class="col-lg-2 control-label">Run ID</label>
               <div class="col-lg-10">
                 <input class="form-control" id="inputRunID" placeholder="18267" type="text">
-                <input type="submit" value="New MiSeq">
+                <button type="submit" class="btn btn-primary">Add MiSeq</button>
               </div>
             </div>
           </fieldset>
         </form>
       </div>
+    </div>
+    <div id="miseq-info">
+      [% IF plex %]
+        [% INCLUDE show_miseq.tt %]
+      [% END %]
     </div>
   </div> <!-- / container -->
