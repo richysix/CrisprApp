@@ -5,25 +5,27 @@
   </div>
   <div id="content"  class="container-fluid"  role="main">
     <div class="row">
-      <table class="table table-striped" id="injection-table">
-        <caption>Injections</caption>
-        <thead>
-          <th>Pool Name</th>
-          <th>Date</th>
-          <th>Line Injected</th>
-          <th>Line Raised</th>
-        </thead>
-        <tbody>
-        [% FOREACH injection IN injections %]
-        <tr class="">
-          <td><a href="[% injection_url %]/[% injection.pool_name %]" id="[% injection.pool_name %]" >[% injection.pool_name %]</a></td>
-          <td>[% injection.date %]</td>
-          <td>[% injection.line_injected %]</td>
-          <td>[% injection.line_raised %]</td>
-        </tr>
-        [% END %]
-        </tbody>
-      </table>
+      <div class="col-lg-12">
+        <table class="table table-striped" id="injection-table">
+          <caption>Injections</caption>
+          <thead>
+            <th>Pool Name</th>
+            <th>Date</th>
+            <th>Line Injected</th>
+            <th>Line Raised</th>
+          </thead>
+          <tbody>
+          [% FOREACH injection IN injections %]
+          <tr class="">
+            <td><a href="[% injection_url %]/[% injection.pool_name %]" id="[% injection.pool_name %]" >[% injection.pool_name %]</a></td>
+            <td>[% injection.date %]</td>
+            <td>[% injection.line_injected %]</td>
+            <td>[% injection.line_raised %]</td>
+          </tr>
+          [% END %]
+          </tbody>
+        </table>
+      </div>
     </div>
   </div> <!-- / container -->
 </div>
