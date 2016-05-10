@@ -427,19 +427,15 @@ sub get_cas9_preps {
     my $cas9_preps;
     my @cas9_preps;
     if( $ENV{ PLACK_ENV } eq 'development' ){
-        $cas9_preps = [ $mock_objects->{mock_cas9_prep} ];;
-        foreach my $prep ( @{$cas9_preps} ){
-            my $name = join(q{}, $prep->{cas9}->{type}, '(', $prep->{db_id}, ')' );
-            push @cas9_preps, { name => $name, };
-        }
+        $cas9_preps = [ $mock_objects->{mock_cas9_prep} ];
     }
     else{
         # get all cas9_preps from the db
         $cas9_preps = $cas9_prep_adaptor->_fetch();
-        foreach my $prep ( @{$cas9_preps} ){
-            my $name = join(q{}, $prep->cas9->type, '(', $prep->db_id, ')' );
-            push @cas9_preps, { name => $name, };
-        }
+    }
+    foreach my $prep ( @{$cas9_preps} ){
+        my $name = join(q{}, $prep->cas9->type, '(', $prep->db_id, ')' );
+        push @cas9_preps, { name => $name, };
     }
     return( \@cas9_preps, );
 }
@@ -466,43 +462,26 @@ get '/get_injections' => sub {
     }
     else{
         if( param('inj_name') ){
-            eval {
-                $injections = [ $injection_pool_adaptor->fetch_by_name( param('inj_name') ) ];
-            };
-            if( $EVAL_ERROR ){
-                if( $EVAL_ERROR =~ m/Couldn't\sretrieve\sinjection_pool/xms ){
-                    $err_msg = join(q{}, 'There is no injection_pool named, <strong>',
-                                    param('inj_name'),
-                                    '</strong> in the database.', ) . "\n";
-                }
-                else{
-                    die $EVAL_ERROR;
-                }
-            }
+            my $injection = $injection_pool_adaptor->fetch_by_name( param('inj_name') );
+            $injections = defined $injection ? [ $injection ] : [];
         }
         elsif( param('date') ){
-            eval {
-                $injections = $injection_pool_adaptor->fetch_all_by_date( param('date') );
-            };
-            if( $EVAL_ERROR ){
-                if( $EVAL_ERROR =~ m/There\sare\sno\sinjection_pools\sfor\sthe\sdate/xms ){
-                    $err_msg = join(q{}, 'There are no injection_pools for the date, <strong>',
-                                    param('date'),
-                                    '</strong> in the database.', ) . "\n";
-                }
-                else{
-                    die $EVAL_ERROR;
-                }
-            }
+            $injections = $injection_pool_adaptor->fetch_all_by_date( param('date') );
         }
         else{
             $injections = $injection_pool_adaptor->_fetch();
         }
     }
     
-    if( $err_msg ){
-        warn 'ERROR MESSAGE: ' . $err_msg;
+    if( scalar @{$injections} == 0 ){
+        my $err_msg = "Couldn't find any matches for:<br>";
+        $err_msg .= join(' - ', 'Name', param('inj_name'), ) . '<br>' if param('inj_name');
+        $err_msg .= join(' - ', 'Date', param('date'), ) . '<br>' if param('date');
+        my $cas9_preps = get_cas9_preps();
         template 'injections', {
+            cas9_preps => $cas9_preps,
+            add_injection_url => uri_for('/add_injection_to_db'),
+            get_injections_url => uri_for('/get_injections'),
             err_msg => $err_msg,
         };
     }
@@ -680,6 +659,7 @@ sub _make_mock_objects {
     $mock_objects->{mock_cas9_object} = $mock_cas9;
     my ( $mock_cas9_prep, $mock_cas9_prep_id, ) =
         $test_method_obj->create_mock_object_and_add_to_db( 'cas9_prep', $mock_objects, );
+    $mock_objects->{mock_cas9_prep} = $mock_cas9_prep;
     $mock_objects->{mock_well} = $mock_well_1;
     $mock_objects->{mock_crRNA} = $mock_crRNA_1;
     $mock_objects->{gRNA_num} = 1;

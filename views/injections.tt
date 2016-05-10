@@ -4,14 +4,15 @@
     <h1 id="title">Injections</h1>
   </div>
   <div id="content"  class="container-fluid"  role="main">
-    [% INCLUDE alert
-        err_msg = err_msg
-        success_msg = success_msg
-    %]
 
     <a class="btn btn-primary js-show-get-inj-form" href="#">Find</a>
     <a class="btn btn-primary js-show-add-inj-form" href="#">Add</a>
   
+    [% alert_title = 'Injection Search' %]
+    [% IF err_msg or success_msg %]
+      [% INCLUDE alert.tt %]
+    [% END %]
+
     [% INCLUDE get_injections
         get_injections_url = get_injections_url
     %]
@@ -21,26 +22,6 @@
     %]
   </div>
 </div> <!-- / container -->
-
-[% BLOCK alert %]
-  <div class="row">
-    <div class="col-lg-12">
-      [% IF err_msg %]
-      <div class="alert alert-dismissible alert-danger">
-        <button type="button" class="close" data-dismiss="alert" aria-label="close">
-          <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-        </button>
-        <strong>Add Injections</strong><p>[% err_msg %]</p>
-      </div>
-      [% ELSIF success_msg %]
-      <div class="alert alert-success">
-        <strong>Add Injections</strong><p>[% success_msg %]</p>
-      </div>
-      [% END %]
-    </div>
-  </div>
-[% END %]
-
 
 [% BLOCK get_injections %]
 <div id="get_inj_form" class="hidden_div">
