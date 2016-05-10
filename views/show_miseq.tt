@@ -1,22 +1,18 @@
-<div class="container">
-  <div id="content"  class="container-fluid"  role="main">
-    <div class="row">
-      <table class="table table-striped" id="target-table">
-          <thead>
-            <th>Plex Name</th>
-            <th>Run ID</th>
-            <th>Started</th>
-            <th>Finished</th>
-          </thead>
-          <tbody>
-            <tr>
-              <td>[% plex.plex_name %]</td>
-              <td>[% plex.run_id %]</td>
-              <td>[% plex.analysis_started %]</td>
-              <td>[% plex.analysis_finished or 'NOT FINISHED' %]</td>
-            </tr>
-          </tbody>
-        </table>
-    </div> <!-- /row -->
-  </div> <!-- /container -->
-</div> <!-- / container -->
+<div class="row">
+  <table class="table table-striped" id="target-table">
+      <thead>
+        <th>Plex Name</th>
+        <th>Run ID</th>
+        <th>Started</th>
+        <th>Finished</th>
+      </thead>
+      <tbody>
+        <tr>
+          <td>[% plex.plex_name %]</td>
+          <td>[% plex.run_id %]</td>
+          <td>[% plex.analysis_started %]</td>
+          <td>[% plex.analysis_finished or 'NOT FINISHED' %]</td>
+        </tr>
+      </tbody>
+    </table>
+</div> <!-- /row -->

@@ -1,0 +1,30 @@
+[% FOREACH analysis IN analyses %]
+<div class="well">
+  <div class="row">
+    <div class="col-md-6">
+      <p><strong>Analysis ID: </strong>[% analysis.db_id %]</p>
+      <p><strong>Injection Name: </strong>
+      <a href="[% injection_url %]/[% analysis.injection_pool.db_id %]" id="[% analysis.injection_pool.pool_name %]" >[% analysis.injection_pool.pool_name %]</a>
+      </p>
+      <a class="btn btn-primary " href="[% analysis_url %]/[% analysis.db_id %]">Results</a>
+    </div>
+    <div class="col-md-6">
+      <h4>Crisprs</h4>
+      <table class="table table-striped" id="target-table">
+        <thead>
+          <th>Crispr Name</th>
+          <th>Gene Name</th>
+        </thead>
+        <tbody>
+          [% FOREACH guideRNA IN analysis.injection_pool.guideRNAs %]
+          <tr class="">
+            <td><a href="[% sgrna_url %]/[% guideRNA.crRNA.crRNA_id %]">[% guideRNA.crRNA.name %]</a></td>
+            <td>[% guideRNA.crRNA.target.gene_name %]</td>
+          </tr>
+          [% END %]
+        </tbody>
+      </table>
+    </div>
+  </div> <!-- /row -->
+</div> <!-- /well -->
+[% END %]
