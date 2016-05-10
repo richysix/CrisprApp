@@ -36,7 +36,7 @@ warn $crispr_db, "\n";
 
 my ( $target_adaptor, $crRNA_adaptor, $primer_pair_adaptor, $plate_adaptor,
     $injection_pool_adaptor, $cas9_prep_adaptor, $guideRNA_adaptor,
-    $plex_adaptor, );
+    $plex_adaptor, $analysis_adaptor, );
 if( $ENV{ PLACK_ENV } eq 'production' ){
     warn 'PRODUCTION';
     # connect to db
@@ -51,6 +51,7 @@ if( $ENV{ PLACK_ENV } eq 'production' ){
     $cas9_prep_adaptor = $DB_connection->get_adaptor( 'cas9_prep' );
     $guideRNA_adaptor = $DB_connection->get_adaptor( 'guidernaprep' );
     $plex_adaptor = $DB_connection->get_adaptor( 'plex' );
+    $analysis_adaptor = $DB_connection->get_adaptor( 'analysis' );
 }
 
 hook before_template => sub {
@@ -371,31 +372,56 @@ get '/miseq' => sub {
 get '/get_miseq' => sub {
     debug "MiSeq ID: ", param('miseq_run_id');
     
-    my ($plex, $err_msg );
+    my ($plex, $err_msg, $analyses );
     if( $ENV{ PLACK_ENV } eq 'development' ){
         $plex = $mock_objects->{mock_plex};
+        $analyses = [ $mock_objects->{mock_analysis}, ];
     }
     else{
         # if the supplied value is all digits, assume it's a run id
         if( param('miseq_run_id') =~ m/\A \d+ \z/xms ){
             $plex = $plex_adaptor->fetch_by_run_id( param('miseq_run_id') );
-        
         }
         # else assume it's a plex name
         else{
             $plex = $plex_adaptor->fetch_by_name( param('miseq_run_id') );
         }
-    }
-    if( !$plex ){
-        $err_msg = join(q{ }, "Couldn't find plex", param('miseq_run_id'),
-            "in the database." ) . "\n";
+        
+        if( !$plex ){
+            $err_msg = join(q{ }, "Couldn't find plex", param('miseq_run_id'),
+                "in the database." ) . "\n";
+        }
+        else{
+            # get plex results
+            $analyses = $analysis_adaptor->fetch_all_by_plex( $plex );
+        }
     }
     template 'miseq', {
         template_name => 'miseq',
         plex => $plex,
+        analyses => $analyses,
         err_msg => $err_msg,
+        injection_url => uri_for('/injection'),
+        sgrna_url => uri_for('/sgrna'),
+        analysis_url => uri_for('/analysis'),
     };
 };
+
+get '/analysis/:analysis_id' => sub {
+    my $analysis_id = param('analysis_id');
+    
+    my $analysis;
+    if( $ENV{ PLACK_ENV } eq 'development' ){
+        $analysis = $mock_objects->{mock_analysis};
+    }
+    else{
+        $analysis = $analysis_adaptor->fetch_by_analysis_id( $analysis_id );
+    }
+    
+    template 'analysis_reults', {
+        analysis => $analysis,
+    };
+}
 
 sub get_cas9_preps {
     my $cas9_preps;
@@ -435,7 +461,8 @@ get '/get_injections' => sub {
     my $injections;
     my $err_msg;
     if( $ENV{ PLACK_ENV } eq 'development' ){
-        $injections = [ $mock_objects->{mock_injection_pool} ];
+        $injections = [ $mock_objects->{mock_injection_pool},
+                        $mock_objects->{mock_injection_pool}, ];
     }
     else{
         if( param('inj_name') ){
@@ -645,65 +672,19 @@ sub _make_mock_objects {
     $mock_crRNA_1->mock('well', sub { return $mock_well_1; } );
     $mock_crRNA_2->mock('well', sub { return $mock_well_2; } );
     
-    # make mock primer and primer pair objects
-    my $mock_left_primer = Test::MockObject->new();
-    my $l_p_id = 1;
-    $mock_left_primer->mock( 'sequence', sub { return 'CGACAGTAGACAGTTAGACGAG' } );
-    $mock_left_primer->mock( 'seq_region', sub { return '5' } );
-    $mock_left_primer->mock( 'seq_region_start', sub { return 101 } );
-    $mock_left_primer->mock( 'seq_region_end', sub { return 124 } );
-    $mock_left_primer->mock( 'seq_region_strand', sub { return '1' } );
-    $mock_left_primer->mock( 'tail', sub { return undef } );
-    $mock_left_primer->set_isa('Crispr::Primer');
-    $mock_left_primer->mock('primer_id', sub { my @args = @_; if( $_[1]){ return $_[1] }else{ return $l_p_id} } );
-    $mock_left_primer->mock( 'primer_name', sub { return '5:101-124:1' } );
-    $mock_left_primer->mock( 'well_id', sub { return 'A01' } );
-    $mock_left_primer->mock( 'plate_name', sub { return 'CR_000001h' } );
-    
-    my $mock_right_primer = Test::MockObject->new();
-    my $r_p_id = 2;
-    $mock_right_primer->mock( 'sequence', sub { return 'GATAGATACGATAGATGGGAC' } );
-    $mock_right_primer->mock( 'seq_region', sub { return '5' } );
-    $mock_right_primer->mock( 'seq_region_start', sub { return 600 } );
-    $mock_right_primer->mock( 'seq_region_end', sub { return 623 } );
-    $mock_right_primer->mock( 'seq_region_strand', sub { return '-1' } );
-    $mock_right_primer->mock( 'tail', sub { return undef } );
-    $mock_right_primer->set_isa('Crispr::Primer');
-    $mock_right_primer->mock('primer_id', sub { my @args = @_; if( $_[1]){ return $_[1] }else{ return $r_p_id} } );
-    $mock_right_primer->mock( 'primer_name', sub { return '5:600-623:-1' } );
-    $mock_right_primer->mock( 'well_id', sub { return 'A01' } );
-    $mock_right_primer->mock( 'plate_name', sub { return 'CR_000001h' } );
-        
-    my $mock_primer_pair = Test::MockObject->new();
-    my $pair_id = 1;
-    $mock_primer_pair->mock( 'type', sub{ return 'ext' } );
-    $mock_primer_pair->mock( 'left_primer', sub{ return $mock_left_primer } );
-    $mock_primer_pair->mock( 'right_primer', sub{ return $mock_right_primer } );
-    $mock_primer_pair->mock( 'seq_region', sub{ return $mock_left_primer->seq_region } );
-    $mock_primer_pair->mock( 'seq_region_start', sub{ return $mock_left_primer->seq_region_start } );
-    $mock_primer_pair->mock( 'seq_region_end', sub{ return $mock_right_primer->seq_region_end } );
-    $mock_primer_pair->mock( 'seq_region_strand', sub{ return 1 } );
-    $mock_primer_pair->mock( 'product_size', sub{ return 523 } );
-    $mock_primer_pair->set_isa('Crispr::PrimerPair');
-    $mock_primer_pair->mock('primer_pair_id', sub { my @args = @_; if($_[1]){ return $_[1] }else{ return $pair_id} } );
-    $mock_primer_pair->mock( 'pair_name', sub{ return '5:101-623:1'; } );
-    
-    $mock_objects->{mock_primer_pair} = $mock_primer_pair;
-
-    # create mock injection
-    # needs mock cas9, cas9_prep and well
+    my ( $mock_plex, $mock_plex_id, ) =
+        $test_method_obj->create_mock_object_and_add_to_db( 'plex', $mock_objects, );
+    $mock_objects->{mock_plex} = $mock_plex;
     my ( $mock_cas9, $mock_cas9_id, ) =
         $test_method_obj->create_mock_object_and_add_to_db( 'cas9', $mock_objects, );
     $mock_objects->{mock_cas9_object} = $mock_cas9;
     my ( $mock_cas9_prep, $mock_cas9_prep_id, ) =
         $test_method_obj->create_mock_object_and_add_to_db( 'cas9_prep', $mock_objects, );
-
     $mock_objects->{mock_well} = $mock_well_1;
     $mock_objects->{mock_crRNA} = $mock_crRNA_1;
     $mock_objects->{gRNA_num} = 1;
     my ( $mock_gRNA_1, $mock_gRNA_1_id, ) =
         $test_method_obj->create_mock_object_and_add_to_db( 'gRNA', $mock_objects, );
-    $mock_objects->{mock_well} = $mock_well_2;
     $mock_objects->{mock_crRNA} = $mock_crRNA_2;
     $mock_objects->{gRNA_num} = 2;
     my ( $mock_gRNA_2, $mock_gRNA_2_id, ) =
@@ -714,11 +695,26 @@ sub _make_mock_objects {
     my ( $mock_injection_pool, $mock_injection_pool_id, ) =
         $test_method_obj->create_mock_object_and_add_to_db( 'injection_pool', $mock_objects, );
     $mock_objects->{mock_injection_pool} = $mock_injection_pool;
-    
-    # create mock plex object
-    my ( $mock_plex, $mock_plex_id, ) =
-        $test_method_obj->create_mock_object_and_add_to_db( 'plex', $mock_objects, );
-    $mock_objects->{mock_plex} = $mock_plex;
+    $mock_objects->{sample_ids} = [ 1..10 ];
+    $mock_objects->{well_ids} = [ qw{A01 A02 A03 A04 A05 A06 A07 A08 A09 A10} ];
+    my ( $mock_samples, $mock_sample_ids, ) =
+        $test_method_obj->create_mock_object_and_add_to_db( 'sample', $mock_objects, );
+    $mock_objects->{mock_samples} = $mock_samples;
+    $mock_objects->{barcode_ids} = [ 1..10 ];
+    my ( $mock_left_primer, $mock_left_primer_id, ) =
+        $test_method_obj->create_mock_object_and_add_to_db( 'primer', $mock_objects, );
+    $mock_objects->{mock_left_primer} = $mock_left_primer;
+    my ( $mock_right_primer, $mock_right_primer_id, ) =
+        $test_method_obj->create_mock_object_and_add_to_db( 'primer', $mock_objects, );
+    $mock_objects->{mock_right_primer} = $mock_right_primer;
+    my ( $mock_primer_pair, $mock_primer_pair_id, ) =
+        $test_method_obj->create_mock_object_and_add_to_db( 'primer_pair', $mock_objects, );
+    $mock_objects->{mock_primer_pair} = $mock_primer_pair;
+    my ( $mock_sample_amplicons, $mock_sample_amplicon_ids, ) =
+        $test_method_obj->create_mock_object_and_add_to_db( 'sample_amplicon', $mock_objects, );
+    my ( $mock_analysis, $mock_analysis_id, ) =
+        $test_method_obj->create_mock_object_and_add_to_db( 'analysis', $mock_objects, );
+    $mock_objects->{mock_analysis} = $mock_analysis;
     
     warn Dumper( $mock_objects, );
     
