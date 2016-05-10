@@ -16,7 +16,7 @@
         <tbody>
         [% FOREACH injection IN injections %]
         <tr class="">
-          <td><a href="[% injection_url %]/[% injection.pool_name %]" id="[% injection.pool_name %]" >[% injection.pool_name %]</a></td>
+          <td><a href="[% injection_url %]/[% injection.db_id %]" id="[% injection.pool_name %]" >[% injection.pool_name %]</a></td>
           <td>[% injection.date %]</td>
           <td>[% injection.line_injected %]</td>
           <td>[% injection.line_raised %]</td>
