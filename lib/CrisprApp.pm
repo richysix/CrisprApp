@@ -411,23 +411,35 @@ get '/analysis/:analysis_id' => sub {
     my $analysis_id = param('analysis_id');
     
     my $analysis;
+    my $seq_results;
     if( $ENV{ PLACK_ENV } eq 'development' ){
         $analysis = $mock_objects->{mock_analysis};
+        $seq_results = $mock_objects->{seq_results};
     }
     else{
         $analysis = $analysis_adaptor->fetch_by_analysis_id( $analysis_id );
-    }
-    
-    my $seq_results;
-    foreach my $sample_amplicon ( @{ $analysis->info } ){
         $seq_results = $analysis_adaptor->fetch_sequencing_results_by_analysis_id( $analysis->db_id );
     }
     
+    my $num_samples = scalar $analysis->samples;
     template 'analysis_results', {
         analysis => $analysis,
         seq_results => $seq_results,
-        num_samples => scalar $analysis->samples,
-        
+        num_samples => $num_samples,
+        sample_url => uri_for('/sample'),
+    };
+};
+
+get '/sample/:sample_id' => sub {
+    my $sample_id = param('sample_id');
+    
+    my $sample;
+    if( $ENV{ PLACK_ENV } eq 'development' ){
+        $sample = $mock_objects->{mock_samples}->[0];
+    }
+    
+    template 'sample', {
+        sample => $sample,
     };
 };
 
@@ -453,6 +465,8 @@ get '/injections' => sub {
     template 'injections', {
         template_name => 'injections',
         cas9_preps => $cas9_preps,
+        get_div_class => 'unhidden_div',
+        add_div_class => 'hidden_div',
         add_injection_url => uri_for('/add_injection_to_db'),
         get_injections_url => uri_for('/get_injections'),
     };
@@ -528,15 +542,14 @@ post '/add_injection_to_db' => sub {
     # check params
     my $gRNA_preps;
     my ( $err_msg, $success_msg );
-    my $cas9_prep;
-    my $cas9_preps;
-    my @cas9_preps;
     my $inj_pool;
     if( $ENV{ PLACK_ENV } eq 'development' ){
-        $cas9_prep = $test_cas9_preps->[0];
-        #$cas9_preps = $test_cas9_preps;
-        $success_msg = 'SUCCESS';
-        $inj_pool = undef;
+        $success_msg = join(q{}, 'Injection, ',
+                            '<strong>',
+                            param('inj_name'),
+                            '</strong>',
+                            ', was successfully added to the database.');
+        $inj_pool = $mock_objects->{mock_injection_pool};
     }
     else{
         if( param('sgrnas') ){
@@ -559,6 +572,7 @@ post '/add_injection_to_db' => sub {
                 push @{$gRNA_preps}, $gRNA_prep;
             }
         }
+        my $cas9_prep;
         if( param('cas9') ){
             param('cas9') =~ m/\( ([0-9]+) \)/xms;
             my $cas9_prep_id = $1;
@@ -582,7 +596,9 @@ post '/add_injection_to_db' => sub {
         if( $EVAL_ERROR ){
             if( $EVAL_ERROR =~ m/ALREADY\sEXISTS/xms ){
                 $err_msg = join(q{}, 'Injection, ',
+                                '<strong>',
                                 $inj_pool->pool_name,
+                                '</strong>',
                                 ', already exists in the database.',
                             );
             }
@@ -594,7 +610,9 @@ post '/add_injection_to_db' => sub {
         }
         else{
             $success_msg = join(q{}, 'Injection, ',
+                                '<strong>',
                                 $inj_pool->pool_name,
+                                '</strong>',
                                 ', was successfully added to the database.',
                             );
         }
@@ -602,22 +620,18 @@ post '/add_injection_to_db' => sub {
         if( !$inj_pool->db_id ){
             $inj_pool = undef;
         }
-        # get all cas9_preps from the db
-        $cas9_preps = $cas9_prep_adaptor->_fetch();
     }
     
     warn 'SUCCESS_MSG: ', $success_msg, "\n";
-    
-    foreach my $prep ( @{$cas9_preps} ){
-        my $name = join(q{}, $prep->cas9->type, '(', $prep->db_id, ')' );
-        push @cas9_preps, { name => $name, };
-    }
-
+    my $cas9_preps = get_cas9_preps();
     template 'injections', {
-        cas9_preps => \@cas9_preps,
+        template_name => 'injection_added',
+        cas9_preps => $cas9_preps,
         injection => $inj_pool,
         err_msg => $err_msg,
         success_msg => $success_msg,
+        get_div_class => 'hidden_div',
+        add_div_class => 'unhidden_div',
         add_injection_url => uri_for('/add_injection_to_db'),
         get_injections_url => uri_for('/get_injections'),
     };
@@ -688,6 +702,64 @@ sub _make_mock_objects {
     my ( $mock_samples, $mock_sample_ids, ) =
         $test_method_obj->create_mock_object_and_add_to_db( 'sample', $mock_objects, );
     $mock_objects->{mock_samples} = $mock_samples;
+    $mock_objects->{mock_samples}->[0]->mock('indels',
+        sub {
+            return {
+                $mock_crRNA_1->crRNA_id => {
+                    reads => 8564,
+                    crRNA => $mock_crRNA_1,
+                    alleles => [
+                        {
+                            db_id => 1,
+                            chr => '10',
+                            pos => 25364,
+                            ref_allele => 'GT',
+                            alt_allele => 'GACAG',
+                            allele_number => 'sa564',
+                            percent_of_reads => 10.3,
+                            type => 'frame-shift',
+                        },
+                        {
+                            db_id => 2,
+                            chr => '10',
+                            pos => 25364,
+                            ref_allele => 'GTGATAG',
+                            alt_allele => 'G',
+                            allele_number => 'sa5689',
+                            percent_of_reads => 6.1,
+                            type => 'in-frame',
+                        },
+                    ],
+                },
+                $mock_crRNA_2->crRNA_id => {
+                    reads => 15423,
+                    crRNA => $mock_crRNA_2,
+                    alleles => [
+                        {
+                            db_id => 3,
+                            chr => '15',
+                            pos => 257364,
+                            ref_allele => 'G',
+                            alt_allele => 'GAGCTACAG',
+                            allele_number => 'sa56',
+                            percent_of_reads => 15.6,
+                            type => 'frame-shift',
+                        },
+                        {
+                            db_id => 4,
+                            chr => '15',
+                            pos => 257364,
+                            ref_allele => 'GTGAT',
+                            alt_allele => 'G',
+                            allele_number => 'sa589',
+                            percent_of_reads => 5.7,
+                            type => 'frame-shift',
+                        },
+                    ],
+                }
+            };
+        }
+    );
     $mock_objects->{barcode_ids} = [ 1..10 ];
     my ( $mock_left_primer, $mock_left_primer_id, ) =
         $test_method_obj->create_mock_object_and_add_to_db( 'primer', $mock_objects, );
@@ -700,12 +772,61 @@ sub _make_mock_objects {
     $mock_objects->{mock_primer_pair} = $mock_primer_pair;
     my ( $mock_sample_amplicons, $mock_sample_amplicon_ids, ) =
         $test_method_obj->create_mock_object_and_add_to_db( 'sample_amplicon', $mock_objects, );
+    $mock_objects->{mock_sample_amplicons} = $mock_sample_amplicons;
+    $mock_objects->{mock_amplicons} = [ $mock_primer_pair, ];
     my ( $mock_analysis, $mock_analysis_id, ) =
         $test_method_obj->create_mock_object_and_add_to_db( 'analysis', $mock_objects, );
     $mock_objects->{mock_analysis} = $mock_analysis;
     
+    $mock_objects->{seq_results} = {
+        $mock_crRNA_1->crRNA_id => {
+            'samples' => {
+                $mock_samples->[0]->db_id => {
+                    'crRNA' => $mock_crRNA_1,
+                    'sample' => $mock_samples->[0],
+                    'num_indels' => 2,
+                    'total_percentage_of_reads' => 16.4,
+                    'percentage_major_variant' => 10.3,
+                    'total_reads' => 8564,
+                    'pass' => 1,
+                },
+                $mock_samples->[1]->db_id => {
+                    'crRNA' => $mock_crRNA_1,
+                    'sample' => $mock_samples->[1],
+                    'num_indels' => 0,
+                    'total_percentage_of_reads' => 0,
+                    'percentage_major_variant' => 0,
+                    'total_reads' => 5423,
+                    'pass' => 0,
+                }
+            },
+            'passes' => 1,
+        },
+        $mock_crRNA_2->crRNA_id => {
+            'samples' => {
+                $mock_samples->[0]->db_id => {
+                    'crRNA' => $mock_crRNA_2,
+                    'sample' => $mock_samples->[0],
+                    'num_indels' => 2,
+                    'total_percentage_of_reads' => 21.3,
+                    'percentage_major_variant' => 15.6,
+                    'total_reads' => 15423,
+                    'pass' => 1,
+                },
+                $mock_samples->[1]->db_id => {
+                    'crRNA' => $mock_crRNA_2,
+                    'sample' => $mock_samples->[1],
+                    'num_indels' => 20,
+                    'total_percentage_of_reads' => 40.2,
+                    'percentage_major_variant' => 4.6,
+                    'total_reads' => 16754,
+                    'pass' => 1,
+                }
+            },
+            'passes' => 2,
+        },
+    };
     warn Dumper( $mock_objects, );
-    
     
     return $mock_objects;
 }
