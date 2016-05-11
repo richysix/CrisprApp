@@ -1,0 +1,54 @@
+<div class="container">
+  <!-- page tile -->
+  <div class="page-header">
+    <h1 id="title">Sample Information</h1>
+  </div>
+  <div id="content"  class="container-fluid"  role="main">
+    <div class="row">
+      <div class="well">
+        <p><strong>Sample Name: </strong>[% sample.sample_name %]</p>
+        <p><strong>Generation: </strong>[% sample.generation %]</p>
+        <p><strong>Sample Type: </strong>[% sample.sample_type %]</p>
+        [% IF sample.indels %]
+        <h3>Alleles</h3>
+          [% FOREACH crRNA_id IN sample.indels.keys.sort %]
+            [% results_hash = sample.indels.$crRNA_id %]
+            <div class="well">
+              <p><strong>Crispr: </strong>[% results_hash.crRNA.name %]</p>
+              <table class="table table-striped" id="injection-table">
+                <caption>Samples</caption>
+                <thead>
+                  <th>Allele Number</th>
+                  <th>Chr</th>
+                  <th>Position</th>
+                  <th>Ref Allele</th>
+                  <th>Alt Allele</th>
+                  <th>% of Reads</th>
+                  <th>Type</th>
+                </thead>
+                <tbody>
+                [% FOREACH allele IN results_hash.alleles %]
+                  [% IF allele.type == 'frame-shift' %]
+                    [% row_class = 'success' %]
+                  [% ELSE %]
+                    [% row_class = 'danger' %]
+                  [% END %]
+                  <tr class="[% row_class %]">
+                    <td>[% allele.allele_number %]</td>
+                    <td>[% allele.chr %]</td>
+                    <td>[% allele.pos %]</td>
+                    <td>[% allele.ref_allele %]</td>
+                    <td>[% allele.alt_allele %]</td>
+                    <td>[% allele.percent_of_reads %]</td>
+                    <td>[% allele.type %]</td>
+                  </tr>
+                [% END %]
+                </tbody>
+              </table>
+            </div>
+          [% END %]
+        [% END %]
+      </div>
+    </div>
+  </div> <!-- / container -->
+</div>
