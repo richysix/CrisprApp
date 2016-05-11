@@ -1,0 +1,40 @@
+<div class="container">
+  <!-- page tile -->
+  <div class="page-header">
+    <h1 id="title">MiSeq Analysis Results</h1>
+  </div>
+  <div id="content"  class="container-fluid"  role="main">
+    [% FOREACH gRNA IN analysis.injection_pool.guideRNAs %]
+      [% crRNA_id = gRNA.crRNA.crRNA_id ]
+      <div class="well">
+        <p><strong>Crispr: </strong>[ gRNA.crRNA.name ]</p>
+        <p><strong>Number of Samples: </strong>[ num_samples ]</p>
+        <p><strong>Number of Passes: </strong>[ seq_results.$crRNA_id.passes ]</p>
+        <div class="col-lg-12">
+          <table class="table table-striped" id="injection-table">
+            <caption>Samples</caption>
+            <thead>
+              <th>Sample Name</th>
+              <th>Total Reads</th>
+              <th>Number of Indels</th>
+              <th>% Indels</th>
+              <th>% Major Variant</th>
+            </thead>
+            <tbody>
+            [% FOREACH sample_id IN seq_results.$crRNA.samples.keys.sort %]
+              [% results_hash = seq_results.$crRNA.samples.$sample_id %]
+              <tr class="">
+                <td>[% results_hash.sample.sample_name %]</td>
+                <td>[% results_hash.total_reads %]</td>
+                <td>[% results_hash.num_indels %]</td>
+                <td>[% results_hash.total_percentage_of_reads %]</td>
+                <td>[% results_hash.percentage_major_variant %]</td>
+              </tr>
+            [% END %]
+            </tbody>
+          </table>
+        </div>
+      </div>
+    [% END %]
+  </div> <!-- / container -->
+</div>
