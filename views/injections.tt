@@ -8,23 +8,23 @@
     <a class="btn btn-primary js-show-get-inj-form" href="#">Find</a>
     <a class="btn btn-primary js-show-add-inj-form" href="#">Add</a>
   
-    [% alert_title = 'Injection Search' %]
+    [% INCLUDE get_injections %]
+
+    [% INCLUDE add_injection %]
+    
+    [% alert_title = 'Injections' %]
     [% IF err_msg or success_msg %]
       [% INCLUDE alert.tt %]
     [% END %]
 
-    [% INCLUDE get_injections
-        get_injections_url = get_injections_url
-    %]
-
-    [% INCLUDE add_injection
-        add_injection_url = add_injection_url
-    %]
+    [% IF injection %]
+      [% INCLUDE injection %]
+    [% END %]
   </div>
 </div> <!-- / container -->
 
 [% BLOCK get_injections %]
-<div id="get_inj_form" class="hidden_div">
+<div id="get_inj_form" class="[% get_div_class %]">
   <div class="row" id="get_injections">
     <div class="col-lg-12">
       <form role="form" action="[% get_injections_url %]" method="get">
@@ -52,7 +52,7 @@
 
 
 [% BLOCK add_injection %]
-<div id="add_inj_form" class="hidden_div">
+<div id="add_inj_form" class="[% add_div_class %]">
   <div class="row" id="add_injection">
     <div class="col-lg-12">
       <form role="form" action="[% add_injection_url %]" method="post">
@@ -108,27 +108,29 @@
     </div> <!-- /col -->
   </div> <!-- /row -->
 </div>
-  [% IF injection %]
-  <div class="row">
-    <div class="col-lg-12">
-      <table class="table table-striped" id="injection-table">
-        <caption>Injections</caption>
-        <thead>
-          <th>Pool Name</th>
-          <th>Date</th>
-          <th>Line Injected</th>
-          <th>Line Raised</th>
-        </thead>
-        <tbody>
-        <tr class="">
-          <td>[% injection.pool_name %]</td>
-          <td>[% injection.date %]</td>
-          <td>[% injection.line_injected %]</td>
-          <td>[% injection.line_raised %]</td>
-        </tr>
-        </tbody>
-      </table>
-    </div> <!-- /col -->
-  </div> <!-- /row -->
-  [% END %]
+[% END %]
+
+
+[% BLOCK injection %]
+<div class="row">
+  <div class="col-lg-12">
+    <table class="table table-striped" id="injection-table">
+      <caption>Injections</caption>
+      <thead>
+        <th>Pool Name</th>
+        <th>Date</th>
+        <th>Line Injected</th>
+        <th>Line Raised</th>
+      </thead>
+      <tbody>
+      <tr class="">
+        <td>[% injection.pool_name %]</td>
+        <td>[% injection.date %]</td>
+        <td>[% injection.line_injected %]</td>
+        <td>[% injection.line_raised %]</td>
+      </tr>
+      </tbody>
+    </table>
+  </div> <!-- /col -->
+</div> <!-- /row -->
 [% END %]
