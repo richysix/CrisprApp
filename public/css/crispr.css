@@ -8,16 +8,11 @@ footer{
   background: white;
 }
 
-/*.well-sgRNA {
-  background: #fcf8e3;
-}
-
-.well-primer {
-  background: #ffddcc;
-}
-*/
 .hidden_div{
 	display:none;
 }
 
+.unhidden_div{
+	display:block;
+}
 

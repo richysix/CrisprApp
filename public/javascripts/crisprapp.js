@@ -31,6 +31,4 @@ $(document).ready(function(){
     $("#add_inj_form").show('fast');
   } );
   
-  $(".js-show-get-inj-form").click();
-  
 });

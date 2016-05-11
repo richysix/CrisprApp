@@ -20,9 +20,9 @@
   <link rel="stylesheet" href="[% request.uri_base %]/css/bootstrap.spacelab.min.css">
 
   <!-- site specific stylesheet-->
-  <link rel="stylesheet" href="[% request.uri_base %]/css/crispr.css">
+  <link rel="stylesheet" href="[% request.uri_base %]/css/crispr.css?v26c18094e7228ebafb59ecf4fd18d8dd">
 
-  <script src="[% request.uri_base %]/javascripts/crisprapp.js" type="text/javascript"></script>
+  <script src="[% request.uri_base %]/javascripts/crisprapp.js?v5d6424c62ba839e230ae097689c7c955" type="text/javascript"></script>
 
 </head>
 
