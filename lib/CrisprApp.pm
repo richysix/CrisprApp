@@ -418,10 +418,18 @@ get '/analysis/:analysis_id' => sub {
         $analysis = $analysis_adaptor->fetch_by_analysis_id( $analysis_id );
     }
     
-    template 'analysis_reults', {
+    my $seq_results;
+    foreach my $sample_amplicon ( @{ $analysis->info } ){
+        $seq_results = $analysis_adaptor->fetch_sequencing_results_by_analysis_id( $analysis->db_id );
+    }
+    
+    template 'analysis_results', {
         analysis => $analysis,
+        seq_results => $seq_results,
+        num_samples => scalar $analysis->samples,
+        
     };
-}
+};
 
 sub get_cas9_preps {
     my $cas9_preps;
