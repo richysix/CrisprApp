@@ -14,7 +14,7 @@ use if $ENV{ PLACK_ENV } eq 'development', 'TestMethods';
 my ( $test_method_obj, $mock_objects, $test_targets, $test_pair_info,
     $test_primer_info, $test_inj_info, $test_cas9_preps, );
 if( $ENV{ PLACK_ENV } eq 'development' ){
-    warn "PRODUCTION\n";
+    warn "DEVELOPMENT\n";
     $test_method_obj = TestMethods->new();
     $mock_objects = _make_mock_objects( $test_method_obj, );
 }
@@ -38,7 +38,7 @@ my ( $target_adaptor, $crRNA_adaptor, $primer_pair_adaptor, $plate_adaptor,
     $injection_pool_adaptor, $cas9_prep_adaptor, $guideRNA_adaptor,
     $plex_adaptor, $analysis_adaptor, );
 if( $ENV{ PLACK_ENV } eq 'production' ){
-    warn 'PRODUCTION';
+    warn "PRODUCTION\n";
     # connect to db
     my $DB_connection = Crispr::DB::DBConnection->new( $crispr_db );
     
